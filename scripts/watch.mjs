@@ -12,20 +12,22 @@ function watchMain(server) {
   let electronProcess = null
   const address = server.httpServer.address()
   const env = Object.assign(process.env, {
-    VITE_DEV_SERVER_HOST: address.address,
+    VITE_DEV_SERVER_HOST: `[${address.address}]`,
     VITE_DEV_SERVER_PORT: address.port,
   })
 
   return build({
     configFile: 'packages/main/vite.config.ts',
     mode: 'development',
-    plugins: [{
-      name: 'electron-main-watcher',
-      writeBundle() {
-        electronProcess && electronProcess.kill()
-        electronProcess = spawn(electron, ['.'], { stdio: 'inherit', env })
+    plugins: [
+      {
+        name: 'electron-main-watcher',
+        writeBundle() {
+          electronProcess && electronProcess.kill()
+          electronProcess = spawn(electron, ['.'], { stdio: 'inherit', env })
+        },
       },
-    }],
+    ],
     build: {
       watch: true,
     },
@@ -39,12 +41,14 @@ function watchPreload(server) {
   return build({
     configFile: 'packages/preload/vite.config.ts',
     mode: 'development',
-    plugins: [{
-      name: 'electron-preload-watcher',
-      writeBundle() {
-        server.ws.send({ type: 'full-reload' })
+    plugins: [
+      {
+        name: 'electron-preload-watcher',
+        writeBundle() {
+          server.ws.send({ type: 'full-reload' })
+        },
       },
-    }],
+    ],
     build: {
       watch: true,
     },
