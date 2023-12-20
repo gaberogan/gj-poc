@@ -1,39 +1,43 @@
 import { QuickJSAsyncContext, QuickJSHandle } from 'quickjs-emscripten'
+import { Arena } from 'quickjs-emscripten-sync'
 
-export const defineGlobalObject = (vm: QuickJSAsyncContext, objectName: string) => {
+export type VM = QuickJSAsyncContext & { arena: Arena }
+
+export const defineGlobalObject = (vm: VM, objectName: string) => {
   const handle = vm.newObject()
   vm.setProp(vm.global, objectName, handle)
   return handle
 }
 
 export const defineMethod = (
-  vm: QuickJSAsyncContext,
+  vm: VM,
   objectHandle: QuickJSHandle,
   methodName: string,
-  method: (...args: any[]) => void
+  method: (...encodedArgs: any[]) => void
 ) => {
-  vm.newFunction(methodName, (...args: any[]) => {
-    const nativeArgs = args.map(vm.dump)
-    return method(...nativeArgs)
+  vm.newFunction(methodName, (...encodedArgs: any[]) => {
+    const args = encodedArgs.map(vm.dump)
+    return method(...args)
   }).consume((methodHandle) => vm.setProp(objectHandle, methodName, methodHandle))
 }
 
 export const defineAsyncMethod = (
-  vm: QuickJSAsyncContext,
+  vm: VM,
   objectHandle: QuickJSHandle,
   methodName: string,
-  method: (...args: any[]) => Promise<any>
+  method: (...encodedArgs: any[]) => Promise<any>
 ) => {
-  vm.newAsyncifiedFunction(methodName, async (...args) => {
-    const nativeArgs = args.map(vm.dump) as any[]
-    return await method(...nativeArgs)
+  vm.newAsyncifiedFunction(methodName, async (...encodedArgs) => {
+    const args = encodedArgs.map(vm.dump) as any[]
+    return await method(...args)
   }).consume((methodHandle) => vm.setProp(objectHandle, methodName, methodHandle))
 }
 
-export const executeFunction = async (vm: QuickJSAsyncContext, funcName: string, args: any[]) => {
+export const executeFunction = async (vm: VM, funcName: string, args: any[]) => {
   const stringArgs = args.map((arg) => JSON.stringify(arg)).join(',')
   const evaluatedCode = await vm.evalCodeAsync(`${funcName}(${stringArgs})`)
 
+  // Handle error
   if (evaluatedCode.error) {
     const err = vm.dump(evaluatedCode.error)
     const { name, message, stack } = err
@@ -43,5 +47,12 @@ export const executeFunction = async (vm: QuickJSAsyncContext, funcName: string,
     throw error
   }
 
-  return vm.unwrapResult(evaluatedCode).consume((it) => vm.dump(it))
+  // Add quick_js_reference to call a method like nextPage
+  const encodedResult = vm.unwrapResult(evaluatedCode)
+  const result = vm.dump(encodedResult)
+  if (typeof result === 'object') {
+    result.quick_js_reference = encodedResult
+  }
+
+  return result
 }

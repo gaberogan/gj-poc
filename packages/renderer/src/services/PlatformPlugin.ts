@@ -1,13 +1,13 @@
 import assert from 'assert'
-import { QuickJSAsyncContext, newAsyncContext } from 'quickjs-emscripten'
-import { fetchText } from './async'
-import createBridgePackage from './BridgePackage'
+import { newAsyncContext } from 'quickjs-emscripten'
+import { Arena } from 'quickjs-emscripten-sync'
+import { fetchJSON, fetchText } from './async'
 import createHttpPackage from './HttpPackage'
-import { executeFunction } from './quickjs'
+import { VM, executeFunction } from './quickjs'
+import { joinPathOrUrl } from './path'
 
-const polyfillScript = await fetchText('/polyfil.js')
-const sourceScript = await fetchText('/source.js')
-const pluginScript = await fetchText('/YoutubeScript.js')
+const polyfillScript = fetchText('/polyfil.js')
+const sourceScript = fetchText('/source.js')
 
 /**
  * A platform plugin such as YouTube or Patreon
@@ -15,7 +15,7 @@ const pluginScript = await fetchText('/YoutubeScript.js')
 class PlatformPlugin {
   configUrl: string
   config: { [key: string]: any } | null // TODO types
-  vm: QuickJSAsyncContext | null
+  vm: VM | null
   bridge: any // TODO types
 
   constructor(configUrl: string) {
@@ -29,7 +29,9 @@ class PlatformPlugin {
         get: (_, method: string) => {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')
-            return await executeFunction(this.vm!, `source.${method}`, args)
+            await executeFunction(this.vm!, `lastReturnedValue = source.${method}`, args)
+            const result = this.vm!.arena.evalCode(`lastReturnedValue`)
+            return result
           }
         },
       }
@@ -43,13 +45,18 @@ class PlatformPlugin {
   async enable() {
     assert(!this.enabled, 'This plugin is already enabled.')
 
+    this.config = await fetchJSON(this.configUrl)
+
+    const pluginScript = fetchText(joinPathOrUrl(this.configUrl, this.config!.scriptUrl))
+
     this.vm = await createVM()
 
-    this.vm.evalCodeAsync(polyfillScript)
-    this.vm.evalCodeAsync(sourceScript)
-    this.vm.evalCodeAsync(pluginScript)
+    // TODO add caching
+    this.vm.evalCodeAsync(await polyfillScript)
+    this.vm.evalCodeAsync(await sourceScript)
+    this.vm.evalCodeAsync(await pluginScript)
 
-    this.config = {}
+    this.bridge.enable()
   }
 
   async disable() {
@@ -63,9 +70,22 @@ class PlatformPlugin {
 
 export default PlatformPlugin
 
-async function createVM() {
-  const vm = await newAsyncContext()
-  createBridgePackage(vm)
+async function createVM(): Promise<VM> {
+  const quickJSContext = await newAsyncContext()
+  const arena = new Arena(quickJSContext, { isMarshalable: true })
+  const vm = Object.assign(quickJSContext, { arena })
+
+  arena.expose({
+    console: {
+      log: console.log,
+    },
+    bridge: {
+      log: console.log,
+      isLoggedIn: () => false,
+    },
+  })
+
   createHttpPackage(vm)
+
   return vm
 }

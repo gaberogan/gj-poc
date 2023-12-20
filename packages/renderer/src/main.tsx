@@ -32,14 +32,17 @@ const NUM_CHANNELS = 1
 
 const urls = channelUrls.slice(0, NUM_CHANNELS)
 
+// TODO remove max parallel request limit Electron
 await Promise.all(
   new Array(THREADS).fill(0).map(async () => {
-    const plugin = new PlatformPlugin('')
+    const plugin = new PlatformPlugin('/YoutubeConfig.json')
     await plugin.enable()
     while (urls.length > 0) {
-      // const res = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
-      // console.log(res)
+      const pager = await plugin.bridge.getChannel(urls.splice(0, 1)[0], 'VIDEOS')
+      console.log(pager)
+      console.log(await pager.nextPage())
     }
+    await plugin.disable()
   })
 )
 
