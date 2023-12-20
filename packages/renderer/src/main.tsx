@@ -37,8 +37,8 @@ await Promise.all(
     const plugin = new PlatformPlugin('')
     await plugin.enable()
     while (urls.length > 0) {
-      const res = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
-      console.log(res)
+      // const res = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
+      // console.log(res)
     }
   })
 )

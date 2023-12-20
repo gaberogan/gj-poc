@@ -10,10 +10,11 @@ function watchMain(server) {
    * @type {import('child_process').ChildProcessWithoutNullStreams | null}
    */
   let electronProcess = null
-  const address = server.httpServer.address()
+  const { address, port } = server.httpServer.address()
+  const isIPV4 = address.includes('.')
   const env = Object.assign(process.env, {
-    VITE_DEV_SERVER_HOST: `[${address.address}]`,
-    VITE_DEV_SERVER_PORT: address.port,
+    VITE_DEV_SERVER_HOST: isIPV4 ? address : `[${address}]`,
+    VITE_DEV_SERVER_PORT: port,
   })
 
   return build({
