@@ -10,6 +10,9 @@ import _ from 'lodash'
 const polyfillScript = fetchText('/polyfil.js')
 const sourceScript = fetchText('/source.js')
 
+// Data saved via source.saveState()
+const savedState: { [key: string]: string } = {}
+
 /**
  * A platform plugin such as YouTube or Patreon
  */
@@ -17,12 +20,14 @@ class PlatformPlugin {
   configUrl: string
   config: { [key: string]: any } | null // TODO types
   vm: VM | null
+  busy: boolean
   bridge: any // TODO types
 
   constructor(configUrl: string) {
     this.configUrl = configUrl
     this.config = null
     this.vm = null
+    this.busy = false
     this.bridge = new Proxy(
       {},
       {
@@ -30,7 +35,10 @@ class PlatformPlugin {
         get: (__, method: string) => {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')
-            return await executeFunction(this.vm!, `source.${method}`, args)
+            this.busy = true
+            const result = await executeFunction(this.vm!, `source.${method}`, args)
+            this.busy = false
+            return result
           }
         },
       }
@@ -55,7 +63,11 @@ class PlatformPlugin {
     this.vm.evalCodeAsync(await sourceScript)
     this.vm.evalCodeAsync(await pluginScript)
 
-    await this.bridge.enable(this.config)
+    // Enable
+    await this.bridge.enable(this.config, {}, savedState[this.configUrl])
+
+    // Save state
+    savedState[this.configUrl] = await this.bridge.saveState()
   }
 
   async disable() {

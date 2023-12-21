@@ -1,41 +1,58 @@
 import { deleteDB, openDB } from 'idb'
 
+const versionNumber = Number(process.env.npm_package_version.replaceAll('.', ''))
+
 // Ensure only the user can clear the DB, never the browser
 navigator.storage.persist()
 
-// Function to create the database and table
-async function createSubscriptionCache() {
-  await deleteDB('subscription_cache_db')
-  const db = await openDB('subscription_cache_db', 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('subscription_cache')) {
-        const store = db.createObjectStore('subscription_cache', { keyPath: 'url' })
-        store.createIndex('channelUrlIndex', 'channelUrl')
-        store.createIndex('uploadTimeIndex', 'uploadTime')
-      }
-    },
-  })
+// Uncomment to clear the database
+// await deleteDB('subscription_cache_db')
 
-  return db
+const dbPromise = openDB('subscription_cache_db', versionNumber, {
+  upgrade(db) {
+    if (!db.objectStoreNames.contains('subscription_cache')) {
+      const store = db.createObjectStore('subscription_cache', { keyPath: 'url' })
+      store.createIndex('authorUrlIndex', 'author.url')
+      store.createIndex('datetimeIndex', 'datetime')
+    }
+  },
+})
+
+export const getSubscribedVideos = async () => {
+  const db = await dbPromise
+  const videos = (await db.getAllFromIndex('subscription_cache', 'datetimeIndex')).reverse()
+  return videos.map((v) => v.json)
 }
 
-// // Example usage
-// async function main() {
-//   const db = await createSubscriptionCache()
+interface SubscriptionCacheVideo {
+  url: string
+  datetime: string
+  author: {
+    url: string
+  }
+}
 
-//   // const video = {
-//   //   url: 'https://example.com/1',
-//   //   channelUrl: 'https://channel.example.com',
-//   //   uploadTime: 1000,
-//   //   json: { example: 'data' },
-//   // }
+export const setSubscribedVideos = async (videos: SubscriptionCacheVideo[]) => {
+  const db = await dbPromise
+  await Promise.all(
+    await videos.map((video) => {
+      return db.put('subscription_cache', video)
+    })
+  )
+}
 
-//   // await db.put('subscription_cache', video)
+export const deletePlatformVideos = async (platformUrl: string) => {
+  const db = await dbPromise
+  const videos = await db.getAllKeys('subscription_cache')
 
-//   // Query data and sort by uploadTime in descending order
-//   const result = await db.getAllFromIndex('subscription_cache', 'uploadTimeIndex', null, 100)
-//   const value = result.reverse()
-//   console.log(value)
-// }
-
-// main()
+  await Promise.all(
+    videos.map((video) => {
+      // TODO types?
+      // @ts-ignore
+      if (video.url.startsWith(platformUrl)) {
+        // @ts-ignore
+        return db.delete('subscription_cache', video.url)
+      }
+    })
+  )
+}
