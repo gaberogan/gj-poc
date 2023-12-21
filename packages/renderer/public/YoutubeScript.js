@@ -155,7 +155,7 @@ source.enable = (conf, settings, saveStateStr) => {
     didSaveState = false
   }
   if (!didSaveState) {
-    log(config)
+    // log(config)
 
     const isLoggedIn = bridge.isLoggedIn()
     let batchReq = http.batch().GET(URL_CONTEXT, { 'Accept-Language': 'en-US' }, false)

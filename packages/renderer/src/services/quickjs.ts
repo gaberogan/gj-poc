@@ -35,7 +35,11 @@ export const defineAsyncMethod = (
 
 export const executeFunction = async (vm: VM, funcName: string, args: any[]) => {
   const stringArgs = args.map((arg) => JSON.stringify(arg)).join(',')
-  const evaluatedCode = await vm.evalCodeAsync(`lastReturnedValue = ${funcName}(${stringArgs})`)
+
+  // Hold the result in a global reference so we can call methods on it later
+  const reference = `_refs[\`${Date.now()}|${Math.random()}\`]`
+
+  const evaluatedCode = await vm.evalCodeAsync(`${reference} = ${funcName}(${stringArgs})`)
 
   // Handle error
   if (evaluatedCode.error) {
@@ -47,7 +51,24 @@ export const executeFunction = async (vm: VM, funcName: string, args: any[]) => 
     throw error
   }
 
-  const result = vm.arena.evalCode(`lastReturnedValue`)
+  const result = vm.dump(evaluatedCode.value)
+  if (!(result instanceof Object)) {
+    return result
+  }
+
+  // Keep a reference to evaluatedCode.value so we can call methods like nextPage()
+  result.bridge = new Proxy(result, {
+    get: (target: any, property: string) => {
+      if (property in target) {
+        return target[property]
+      }
+
+      return async (...args: any[]) => {
+        return await executeFunction(vm, `${reference}.${property}`, args)
+      }
+    },
+  })
+
   return result
 }
 

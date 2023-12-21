@@ -75,6 +75,9 @@ async function createVM(): Promise<VM> {
   const vm = Object.assign(quickJSContext, { arena })
 
   arena.expose({
+    // TODO figure out a way to dispose these
+    // Manually hold references to variables to call methods like nextPage()
+    _refs: {},
     console: {
       log: console.log,
     },

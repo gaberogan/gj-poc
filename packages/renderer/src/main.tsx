@@ -40,7 +40,7 @@ await Promise.all(
     while (urls.length > 0) {
       const pager = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
       console.log(pager)
-      const nextPage = await pager.nextPage() // TODO this doesn't work it's synchronous
+      const nextPage = await pager.bridge.nextPage()
       console.log(nextPage)
     }
     await plugin.disable()
