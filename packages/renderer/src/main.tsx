@@ -38,7 +38,7 @@ await Promise.all(
     const plugin = new PlatformPlugin('/YoutubeConfig.json')
     await plugin.enable()
     while (urls.length > 0) {
-      const pager = await plugin.bridge.getChannel(urls.splice(0, 1)[0], 'VIDEOS')
+      const pager = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
       console.log(pager)
       console.log(await pager.nextPage())
     }
