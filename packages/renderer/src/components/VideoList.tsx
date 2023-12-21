@@ -1,6 +1,6 @@
 import { createWindowVirtualizer } from '@tanstack/solid-virtual'
 import { formatDistanceToNowStrict } from 'date-fns'
-import { formatNumber } from '@/services/strings'
+import { formatNumber } from '@/services/format'
 import './VideoList.css'
 import { For } from 'solid-js'
 

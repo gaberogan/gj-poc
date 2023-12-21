@@ -35,7 +35,7 @@ export const defineAsyncMethod = (
 
 export const executeFunction = async (vm: VM, funcName: string, args: any[]) => {
   const stringArgs = args.map((arg) => JSON.stringify(arg)).join(',')
-  const evaluatedCode = await vm.evalCodeAsync(`${funcName}(${stringArgs})`)
+  const evaluatedCode = await vm.evalCodeAsync(`lastReturnedValue = ${funcName}(${stringArgs})`)
 
   // Handle error
   if (evaluatedCode.error) {
@@ -47,12 +47,6 @@ export const executeFunction = async (vm: VM, funcName: string, args: any[]) => 
     throw error
   }
 
-  // Add quick_js_reference to call a method like nextPage
-  const encodedResult = vm.unwrapResult(evaluatedCode)
-  const result = vm.dump(encodedResult)
-  if (typeof result === 'object') {
-    result.quick_js_reference = encodedResult
-  }
-
+  const result = vm.arena.evalCode(`lastReturnedValue`)
   return result
 }

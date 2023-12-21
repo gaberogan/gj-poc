@@ -1,13 +1,14 @@
 import assert from 'assert'
 import { newAsyncContext } from 'quickjs-emscripten'
 import { Arena } from 'quickjs-emscripten-sync'
-import { fetchJSON, fetchText } from './async'
+import { fetchJSONMemo, fetchTextMemo } from './fetch'
 import createHttpPackage from './HttpPackage'
 import { VM, executeFunction } from './quickjs'
-import { joinPathOrUrl } from './path'
+import path from 'path-browserify'
+import _ from 'lodash'
 
-const polyfillScript = fetchText('/polyfil.js')
-const sourceScript = fetchText('/source.js')
+const polyfillScript = fetchTextMemo('/polyfil.js')
+const sourceScript = fetchTextMemo('/source.js')
 
 /**
  * A platform plugin such as YouTube or Patreon
@@ -26,12 +27,10 @@ class PlatformPlugin {
       {},
       {
         // Call a function in the VM and extract the result
-        get: (_, method: string) => {
+        get: (__, method: string) => {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')
-            await executeFunction(this.vm!, `lastReturnedValue = source.${method}`, args)
-            const result = this.vm!.arena.evalCode(`lastReturnedValue`)
-            return result
+            return await executeFunction(this.vm!, `source.${method}`, args)
           }
         },
       }
@@ -45,9 +44,10 @@ class PlatformPlugin {
   async enable() {
     assert(!this.enabled, 'This plugin is already enabled.')
 
-    this.config = await fetchJSON(this.configUrl)
+    this.config = await fetchJSONMemo(this.configUrl)
 
-    const pluginScript = fetchText(joinPathOrUrl(this.configUrl, this.config!.scriptUrl))
+    const scriptUrl = path.join(path.dirname(this.configUrl), this.config!.scriptUrl)
+    const pluginScript = fetchTextMemo(scriptUrl)
 
     this.vm = await createVM()
 
@@ -56,7 +56,7 @@ class PlatformPlugin {
     this.vm.evalCodeAsync(await sourceScript)
     this.vm.evalCodeAsync(await pluginScript)
 
-    this.bridge.enable()
+    this.bridge.enable(this.config)
   }
 
   async disable() {

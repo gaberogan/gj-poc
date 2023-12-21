@@ -1,5 +1,4 @@
 import { VM, defineAsyncMethod, defineGlobalObject, defineMethod } from './quickjs'
-import cache from './cache'
 
 interface BridgeHttpResponse {
   body: string
@@ -8,21 +7,52 @@ interface BridgeHttpResponse {
 }
 
 const createHttpPackage = (vm: VM) => {
+  // vm.arena.expose({
+  //   http: {
+  //     GET: () => {},
+  //     batch: () => {
+  //       const requests = []
+  //       const batcher: any = {
+  //         GET: (url: string, headers: { [key: string]: string }) => {
+  //           requests.push({ url, headers })
+  //           return batcher
+  //         },
+  //         // Can't define async code here that appears synchronous
+  //         execute() {
+  //           throw new Error('TODO')
+  //         },
+  //       }
+
+  //       return batcher
+  //     },
+  //   },
+  // })
+
   const httpHandle = defineGlobalObject(vm, 'http')
 
+  defineMethod(vm, httpHandle, 'batch', () => {
+    const requests = []
+
+    const batcherHandle = vm.newObject()
+
+    // Lifetime not active error
+    const method = defineMethod(vm, batcherHandle, 'GET', (url, headers) => {
+      requests.push({ url, headers })
+      return batcherHandle
+    })
+
+    // defineMethod(vm, batcherHandle, 'execute', () => {
+    //   throw new Error('TODO2')
+    // })
+
+    return batcherHandle
+  })
+
+  // Hidden HTTP API
   defineAsyncMethod(vm, httpHandle, 'GET', async (url, headers) => {
-    let response: BridgeHttpResponse
-
-    const cachedResponse = await cache.get(url)
-
-    if (cachedResponse) {
-      response = cachedResponse
-    } else {
-      const res = await fetch(url, { headers })
-      const text = await res.text()
-      response = { body: text, code: res.status, isOk: res.ok ? 1 : 0 }
-      res.ok && cache.set(url, response, 60 /* seconds ttl */) // No need to await
-    }
+    const res = await fetch(url, { headers })
+    const text = await res.text()
+    const response = { body: text, code: res.status, isOk: res.ok ? 1 : 0 } as BridgeHttpResponse
 
     // Convert response to QuickJSHandle
     const quickjsObject = vm.newObject()
@@ -30,10 +60,6 @@ const createHttpPackage = (vm: VM) => {
     vm.newNumber(response.code).consume((it) => vm.setProp(quickjsObject, 'code', it))
     vm.newNumber(response.isOk).consume((it) => vm.setProp(quickjsObject, 'isOk', it))
     return quickjsObject
-  })
-
-  defineMethod(vm, httpHandle, 'batch', () => {
-    throw new Error('TODO')
   })
 }
 
