@@ -33,7 +33,6 @@ const createHttpPackage = (vm: VM) => {
       return batcherHandle.dup()
     })
 
-    // TODO non-fatal Already suspended error
     defineAsyncMethod(vm, batcherHandle, 'execute', async () => {
       const responses = await Promise.all(requests.map(async (r) => getMethod(r.url, r.headers)))
       return createArray(vm, responses)

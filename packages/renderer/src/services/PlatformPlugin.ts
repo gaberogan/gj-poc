@@ -56,7 +56,7 @@ class PlatformPlugin {
     this.vm.evalCodeAsync(await sourceScript)
     this.vm.evalCodeAsync(await pluginScript)
 
-    this.bridge.enable(this.config)
+    await this.bridge.enable(this.config)
   }
 
   async disable() {
