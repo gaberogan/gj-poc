@@ -1,4 +1,4 @@
-import { VM, defineAsyncMethod, defineGlobalObject, defineMethod } from './quickjs'
+import { VM, createArray, defineAsyncMethod, defineGlobalObject, defineMethod } from './quickjs'
 
 interface BridgeHttpResponse {
   body: string
@@ -7,49 +7,7 @@ interface BridgeHttpResponse {
 }
 
 const createHttpPackage = (vm: VM) => {
-  // vm.arena.expose({
-  //   http: {
-  //     GET: () => {},
-  //     batch: () => {
-  //       const requests = []
-  //       const batcher: any = {
-  //         GET: (url: string, headers: { [key: string]: string }) => {
-  //           requests.push({ url, headers })
-  //           return batcher
-  //         },
-  //         // Can't define async code here that appears synchronous
-  //         execute() {
-  //           throw new Error('TODO')
-  //         },
-  //       }
-
-  //       return batcher
-  //     },
-  //   },
-  // })
-
-  const httpHandle = defineGlobalObject(vm, 'http')
-
-  defineMethod(vm, httpHandle, 'batch', () => {
-    const requests = []
-
-    const batcherHandle = vm.newObject()
-
-    // Lifetime not active error
-    const method = defineMethod(vm, batcherHandle, 'GET', (url, headers) => {
-      requests.push({ url, headers })
-      return batcherHandle
-    })
-
-    // defineMethod(vm, batcherHandle, 'execute', () => {
-    //   throw new Error('TODO2')
-    // })
-
-    return batcherHandle
-  })
-
-  // Hidden HTTP API
-  defineAsyncMethod(vm, httpHandle, 'GET', async (url, headers) => {
+  const getMethod = async (url: string, headers: { [key: string]: string }) => {
     const res = await fetch(url, { headers })
     const text = await res.text()
     const response = { body: text, code: res.status, isOk: res.ok ? 1 : 0 } as BridgeHttpResponse
@@ -60,7 +18,33 @@ const createHttpPackage = (vm: VM) => {
     vm.newNumber(response.code).consume((it) => vm.setProp(quickjsObject, 'code', it))
     vm.newNumber(response.isOk).consume((it) => vm.setProp(quickjsObject, 'isOk', it))
     return quickjsObject
+  }
+
+  const httpHandle = defineGlobalObject(vm, 'http')
+
+  defineMethod(vm, httpHandle, 'batch', () => {
+    const requests: any[] = []
+
+    const batcherHandle = vm.newObject()
+    vm.setProp(vm.global, 'preserveReference1', batcherHandle)
+
+    defineMethod(vm, batcherHandle, 'GET', (url, headers) => {
+      requests.push({ url, headers })
+      return batcherHandle.dup()
+    })
+
+    // TODO non-fatal Already suspended error
+    defineAsyncMethod(vm, batcherHandle, 'execute', async () => {
+      const responses = await Promise.all(requests.map(async (r) => getMethod(r.url, r.headers)))
+      return createArray(vm, responses)
+    })
+
+    // Must duplicate or else batcherHandle will get garbage collected
+    return batcherHandle.dup()
   })
+
+  // Hidden HTTP API
+  defineAsyncMethod(vm, httpHandle, 'GET', getMethod)
 }
 
 export default createHttpPackage

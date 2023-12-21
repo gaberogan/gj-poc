@@ -50,3 +50,9 @@ export const executeFunction = async (vm: VM, funcName: string, args: any[]) => 
   const result = vm.arena.evalCode(`lastReturnedValue`)
   return result
 }
+
+export const createArray = (vm: VM, array: any[]) => {
+  const arrayHandle = vm.newArray()
+  array.forEach((value, key) => vm.setProp(arrayHandle, key, value))
+  return arrayHandle
+}
