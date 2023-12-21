@@ -61,7 +61,6 @@ const createHttpPackage = (vm: VM) => {
     return batcherHandle.dup()
   })
 
-  // TODO cannot handle error in suspended function QuickJSUseAfterFree: Lifetime not alive
   defineAsyncMethod(vm, httpHandle, 'GET', (url, headers) => fetchFunc({ url, headers }))
   defineAsyncMethod(vm, httpHandle, 'POST', (url, body, headers, useAuth) =>
     fetchFunc({ url, headers, body, method: 'POST', useAuth })

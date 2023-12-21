@@ -1,7 +1,7 @@
 import { deleteDB, openDB } from 'idb'
 
-// TODO Ensure only the user can clear the DB, never the browser
-// navigator.storage.persist()
+// Ensure only the user can clear the DB, never the browser
+navigator.storage.persist()
 
 // Function to create the database and table
 async function createSubscriptionCache() {

@@ -1,14 +1,14 @@
 import assert from 'assert'
 import { newAsyncContext } from 'quickjs-emscripten'
 import { Arena } from 'quickjs-emscripten-sync'
-import { fetchJSONMemo, fetchTextMemo } from './fetch'
+import { fetchJSONMemo, fetchText, fetchTextMemo } from './fetch'
 import createHttpPackage from './HttpPackage'
 import { VM, executeFunction } from './quickjs'
 import path from 'path-browserify'
 import _ from 'lodash'
 
-const polyfillScript = fetchTextMemo('/polyfil.js')
-const sourceScript = fetchTextMemo('/source.js')
+const polyfillScript = fetchText('/polyfil.js')
+const sourceScript = fetchText('/source.js')
 
 /**
  * A platform plugin such as YouTube or Patreon
@@ -51,7 +51,6 @@ class PlatformPlugin {
 
     this.vm = await createVM()
 
-    // TODO add caching
     this.vm.evalCodeAsync(await polyfillScript)
     this.vm.evalCodeAsync(await sourceScript)
     this.vm.evalCodeAsync(await pluginScript)
