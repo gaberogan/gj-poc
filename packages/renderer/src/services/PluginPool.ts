@@ -1,5 +1,4 @@
 import PlatformPlugin from './PlatformPlugin'
-import { EasyPromise } from './EasyPromise'
 
 const idealInstances: number = 1 // TODO use 16
 const maxInstances: number = 96
@@ -7,7 +6,7 @@ const maxInstances: number = 96
 let pluginPool: PlatformPlugin[] = []
 let configUrls: string[] = []
 
-class PluginPoolProxy {
+class PluginProxy {
   configUrl: string
   bridge: any
 
@@ -88,14 +87,41 @@ const removeInstance = async (plugin: PlatformPlugin) => {
   await plugin.disable()
 }
 
-export const getPluginPool = async (configUrl: string) => {
-  if (!configUrls.includes(configUrl)) {
-    configUrls.push(configUrl)
-  }
+const getIdealInstancesPerPlugin = () => {
+  const numConfigs = configUrls.length
+  return Math.min(idealInstances, Math.floor(maxInstances / numConfigs))
+}
 
-  await balancePool()
+/**
+ * Add instances until we are at ideal number
+ */
+const scaleUp = async () => {
+  await Promise.all(
+    await configUrls.map(async (configUrl: string) => {
+      const pluginInstances = pluginPool.filter((p) => p.configUrl === configUrl)
+      const numInstancesToAdd = Math.max(0, getIdealInstancesPerPlugin() - pluginInstances.length)
+      await Promise.all(new Array(numInstancesToAdd).fill(0).map(() => addInstance(configUrl)))
+    })
+  )
+}
 
-  return new PluginPoolProxy(configUrl)
+/**
+ * Remove unused instances until we are at ideal number
+ */
+const scaleDown = async () => {
+  await Promise.all(
+    await configUrls.map(async (configUrl: string) => {
+      const pluginInstances = pluginPool.filter((p) => p.configUrl === configUrl)
+      const numInstancesToAdd = getIdealInstancesPerPlugin() - pluginInstances.length
+      const numInstancesToRemove = Math.max(0, -numInstancesToAdd)
+      await Promise.all(
+        pluginInstances
+          .filter((p) => !p.locked)
+          .slice(0, numInstancesToRemove)
+          .map((x) => removeInstance(x))
+      )
+    })
+  )
 }
 
 export const disablePlugin = async (configUrl: string) => {
@@ -103,52 +129,32 @@ export const disablePlugin = async (configUrl: string) => {
   pluginPool.filter((p) => p.configUrl === configUrl).forEach(removeInstance)
 }
 
-const balancePoolInterval = 5 * 60 * 1000
-let balancePoolPromise = new EasyPromise().resolve()
-
-/**
- * Add or subtract plugin instances until we are at idealInstances.
- * If you await this we guarantee at least once instance will be available
- */
-const balancePool = async () => {
-  // Already balancing, resolve all calls when done
-  // This prevents a race condition where a plugin may be initialized twice
-  if (!balancePoolPromise.isResolved) {
-    return balancePoolPromise
+export const enablePlugin = async (configUrl: string) => {
+  const pluginInstances = pluginPool.filter((p) => p.configUrl === configUrl)
+  if (pluginInstances.length === 0) {
+    pluginInstances.push(await addInstance(configUrl))
   }
-  balancePoolPromise = new EasyPromise()
+}
 
-  const numConfigs = configUrls.length
-  const idealNumInstancesPerPlugin = Math.min(idealInstances, Math.floor(maxInstances / numConfigs))
+export const getPluginPool = async (configUrl: string) => {
+  if (!configUrls.includes(configUrl)) {
+    configUrls.push(configUrl)
+    await enablePlugin(configUrl)
+  }
 
-  // Spawn new instances
-  await Promise.all(
-    await configUrls.map(async (configUrl: string) => {
-      const pluginInstances = pluginPool.filter((p) => p.configUrl === configUrl)
-      const numInstancesToAddOrRemove = idealNumInstancesPerPlugin - pluginInstances.length
-
-      // Initialize one first
-      if (pluginInstances.length === 0) {
-        pluginInstances.push(await addInstance(configUrl))
-      }
-
-      // Add instances until we are at ideal number
-      // DO NOT AWAIT, let it scale up in the background
-      const numInstancesToAdd = Math.max(0, numInstancesToAddOrRemove)
-      new Array(numInstancesToAdd).fill(0).map(() => addInstance(configUrl))
-
-      // Remove instances not in use
-      // Fire and forget, these get removed synchronously
-      const numInstancesToRemove = Math.max(0, -numInstancesToAddOrRemove)
-      pluginInstances
-        .filter((p) => !p.locked)
-        .slice(0, numInstancesToRemove)
-        .map((x) => removeInstance(x))
-    })
-  )
-
-  balancePoolPromise.resolve()
+  return new PluginProxy(configUrl)
 }
 
 // Balance pool periodically
-setTimeout(balancePool, balancePoolInterval)
+let balancingPool = false
+setTimeout(async () => {
+  if (balancingPool) {
+    return
+  }
+  balancingPool = true
+
+  await scaleUp()
+  await scaleDown()
+
+  balancingPool = false
+}, 60 * 1000)

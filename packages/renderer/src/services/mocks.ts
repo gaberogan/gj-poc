@@ -1,4 +1,4 @@
-export const channelUrls = [
+export const subcscriptionUrls = [
   'https://www.youtube.com/channel/UCq-Fj5jknLsUf-MWSy4_brA',
   'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
   'https://www.youtube.com/channel/UCbCmjCuTUZos6Inko4u57UQ',

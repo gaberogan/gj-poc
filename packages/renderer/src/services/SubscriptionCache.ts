@@ -18,10 +18,10 @@ const dbPromise = openDB('subscription_cache_db', versionNumber, {
   },
 })
 
-export const getSubscribedVideos = async () => {
+export const getSubscribedVideosCache = async () => {
   const db = await dbPromise
   const videos = (await db.getAllFromIndex('subscription_cache', 'datetimeIndex')).reverse()
-  return videos.map((v) => v.json)
+  return videos
 }
 
 interface SubscriptionCacheVideo {
@@ -32,7 +32,7 @@ interface SubscriptionCacheVideo {
   }
 }
 
-export const setSubscribedVideos = async (videos: SubscriptionCacheVideo[]) => {
+export const setSubscribedVideosCache = async (videos: SubscriptionCacheVideo[]) => {
   const db = await dbPromise
   await Promise.all(
     await videos.map((video) => {

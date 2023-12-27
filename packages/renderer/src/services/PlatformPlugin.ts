@@ -40,6 +40,7 @@ class PlatformPlugin {
       {},
       {
         // Call a function in the VM and extract the result
+        // TODO optionally call method synchronously
         get: (__, method: string) => {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')

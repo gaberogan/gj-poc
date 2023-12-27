@@ -5,9 +5,8 @@ import { lazy, onMount } from 'solid-js'
 import { render } from 'solid-js/web'
 import { Route, Router } from '@solidjs/router'
 import App from './app'
-import { channelUrls } from './services/mocks'
 import Home from './pages/home'
-import { getPluginPool } from './services/PluginPool'
+import { fetchSubscribedVideos } from './services/subscription'
 
 render(() => {
   onMount(() => {
@@ -27,24 +26,15 @@ render(() => {
 
 const main = async () => {
   const start = performance.now()
-
-  const NUM_CHANNELS = 2
-  const CONFIG_URL = '/YoutubeConfig.json'
-
-  const urls = channelUrls.slice(0, NUM_CHANNELS)
-
-  // TODO lots of threads will mean lots of new instances before background instances are created
-  await Promise.all(
-    urls.map(async (url) => {
-      const pool = await getPluginPool(CONFIG_URL)
-      const pager = await pool.bridge.getChannelContents(url, 'VIDEOS')
-      console.log(pager)
-      // const nextPage = await pager.bridge.nextPage()
-      // console.log(nextPage)
-    })
-  )
-
+  const videos = await fetchSubscribedVideos()
+  console.log(videos)
   const end = performance.now()
   console.log(`Total: ${Math.round(end - start)}ms`)
 }
 main()
+
+// // TODO: Use cache
+// const cachedVideos = await getSubscribedVideosCache()
+// if (cachedVideos.length) {
+//   return cachedVideos
+// }
