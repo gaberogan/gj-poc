@@ -9,7 +9,7 @@ export function formatNumber(num: number, precision = 1) {
 
   const found = map.find((x) => Math.abs(num) >= x.threshold)
   if (found) {
-    const formatted = (num / found.threshold).toFixed(precision) + found.suffix
+    const formatted = (num / found.threshold).toFixed(precision).replace('.0', '') + found.suffix
     return formatted
   }
 

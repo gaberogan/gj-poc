@@ -2,55 +2,49 @@ import { createWindowVirtualizer } from '@tanstack/solid-virtual'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { formatNumber } from '@/services/format'
 import './VideoList.css'
-import { For } from 'solid-js'
+import { For, createMemo } from 'solid-js'
 
-type Video = {
-  readonly id: string
-  readonly imageUrl: string
-  readonly uploadDate: string
-  readonly duration: number
-  readonly title: string
-  readonly url: string
-  readonly views: number
-  readonly authorName: string
-  readonly authorImageUrl: string
-}
-
-const data = await fetch('/CNN_Videos.json').then((x) => x.json())
-
-const videos = data.slice(0, 9000).map(
-  (vid: any) =>
-    ({
-      id: vid.ID.Value,
-      imageUrl: vid.Thumbnails.Sources.slice(-1)[0].Url,
-      uploadDate: vid.DateTime,
-      duration: vid.Duration,
-      title: vid.Name,
-      url: vid.Url,
-      views: vid.ViewCount,
-      authorName: vid.Author.Name,
-      authorImageUrl: vid.Author.Thumbnail,
-    } as Video)
-)
+type Video = Readonly<{
+  id: {
+    value: string
+  }
+  thumbnails: {
+    sources: {
+      quality: number
+      url: string
+    }[]
+  }
+  datetime: number
+  duration: number
+  name: string
+  url: string
+  viewCount: number
+  author: {
+    id: {
+      value: string
+    }
+    name: string
+    thumbnail: string
+    url: string
+  }
+}>
 
 // Row virtualizer with dynamic item size
-function VideoList() {
+function VideoList(props: { videos: any[] }) {
   const numColumns = 4
 
-  const numRows = Math.ceil(videos.length / numColumns)
-
-  const virtualizer = createWindowVirtualizer({
-    count: numRows,
-    estimateSize: () => 300,
-    overscan: 5,
+  const virtualizer = createMemo(() => {
+    return createWindowVirtualizer({
+      count: Math.ceil(props.videos.length / numColumns),
+      estimateSize: () => 300,
+      overscan: 5,
+    })
   })
-
-  const virtualRows = virtualizer.getVirtualItems()
 
   return (
     <div
       style={{
-        height: virtualizer.getTotalSize() + 'px',
+        height: virtualizer().getTotalSize() + 'px',
         position: 'relative',
         margin: 24 + 'px',
       }}
@@ -61,15 +55,16 @@ function VideoList() {
           top: 0,
           left: 0,
           width: '100%',
-          transform: `translateY(${virtualRows[0]?.start ?? 0}px)`,
+          transform: `translateY(${virtualizer().getVirtualItems()[0]?.start ?? 0}px)`,
           display: 'flex',
           'flex-direction': 'column',
           gap: 30 + 'px',
         }}
       >
-        <For each={virtualRows}>
+        <For each={virtualizer().getVirtualItems()}>
           {({ index }: any) => {
-            const videoRow = videos.slice(index, index + numColumns)
+            const startIndex = index * numColumns
+            const videoRow = props.videos.slice(startIndex, startIndex + numColumns)
             return (
               <div class="videoRow">
                 <For each={videoRow}>
@@ -82,16 +77,16 @@ function VideoList() {
                         ],
                       }}
                     >
-                      <img class="imageUrl" src={vid.imageUrl} />
+                      <img class="imageUrl" src={vid.thumbnails.sources.slice(-1)[0].url} />
                       <div class="metadata">
-                        <img class="authorImageUrl" src={vid.authorImageUrl} />
+                        <img class="authorImageUrl" src={vid.author.thumbnail} />
 
                         <div class="metadata-right">
-                          <div class="title">{vid.title}</div>
-                          <div class="small-metadata">{vid.authorName}</div>
+                          <div class="title">{vid.name}</div>
+                          <div class="small-metadata">{vid.author.name}</div>
                           <div class="small-metadata">
-                            {formatNumber(vid.views)} views •
-                            {formatDistanceToNowStrict(new Date(vid.uploadDate))} ago
+                            {formatNumber(vid.viewCount)} views •
+                            {formatDistanceToNowStrict(new Date(vid.datetime * 1000))} ago
                           </div>
                         </div>
                       </div>
