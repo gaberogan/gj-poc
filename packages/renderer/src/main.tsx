@@ -6,8 +6,8 @@ import { render } from 'solid-js/web'
 import { Route, Router } from '@solidjs/router'
 import App from './app'
 import { channelUrls } from './services/mocks'
-import PlatformPlugin from './services/PlatformPlugin'
 import Home from './pages/home'
+import { getPluginPool } from './services/PluginPool'
 
 render(() => {
   onMount(() => {
@@ -25,32 +25,26 @@ render(() => {
 
 // Benchmark
 
-const start = performance.now()
+const main = async () => {
+  const start = performance.now()
 
-const THREADS = 1
-const NUM_CHANNELS = 1
-const CONFIG_URL = '/YoutubeConfig.json'
+  const NUM_CHANNELS = 2
+  const CONFIG_URL = '/YoutubeConfig.json'
 
-const urls = channelUrls.slice(0, NUM_CHANNELS)
+  const urls = channelUrls.slice(0, NUM_CHANNELS)
 
-// Enable 1 first to leverage saveState
-const plugin = new PlatformPlugin(CONFIG_URL)
-await plugin.enable()
+  // TODO lots of threads will mean lots of new instances before background instances are created
+  await Promise.all(
+    urls.map(async (url) => {
+      const pool = await getPluginPool(CONFIG_URL)
+      const pager = await pool.bridge.getChannelContents(url, 'VIDEOS')
+      console.log(pager)
+      // const nextPage = await pager.bridge.nextPage()
+      // console.log(nextPage)
+    })
+  )
 
-// TODO remove max parallel request limit Electron
-await Promise.all(
-  new Array(THREADS).fill(0).map(async () => {
-    const plugin = new PlatformPlugin(CONFIG_URL)
-    await plugin.enable()
-    // while (urls.length > 0) {
-    //   const pager = await plugin.bridge.getChannelContents(urls.splice(0, 1)[0], 'VIDEOS')
-    //   console.log(pager)
-    //   const nextPage = await pager.bridge.nextPage()
-    //   console.log(nextPage)
-    // }
-    // await plugin.disable()
-  })
-)
-
-const end = performance.now()
-console.log(`Total: ${Math.round(end - start)}ms`)
+  const end = performance.now()
+  console.log(`Total: ${Math.round(end - start)}ms`)
+}
+main()

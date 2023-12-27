@@ -6,6 +6,9 @@ import createHttpPackage from './HttpPackage'
 import { VM, executeFunction } from './quickjs'
 import path from 'path-browserify'
 import _ from 'lodash'
+import { EasyPromise } from './EasyPromise'
+
+let idCounter = 0
 
 const polyfillScript = fetchText('/polyfil.js')
 const sourceScript = fetchText('/source.js')
@@ -17,17 +20,22 @@ const savedState: { [key: string]: string } = {}
  * A platform plugin such as YouTube or Patreon
  */
 class PlatformPlugin {
+  id: string
   configUrl: string
   config: { [key: string]: any } | null // TODO types
   vm: VM | null
-  busy: boolean
   bridge: any // TODO types
+  available: EasyPromise
+
+  private _locked: boolean
 
   constructor(configUrl: string) {
+    this.id = `plugin:${++idCounter}`
     this.configUrl = configUrl
     this.config = null
     this.vm = null
-    this.busy = false
+    this._locked = false
+    this.available = new EasyPromise().resolve()
     this.bridge = new Proxy(
       {},
       {
@@ -35,14 +43,42 @@ class PlatformPlugin {
         get: (__, method: string) => {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')
-            this.busy = true
+            this.locked = true
+            console.debug(`Start: ${method} (${this.id})`)
             const result = await executeFunction(this.vm!, `source.${method}`, args)
-            this.busy = false
+            console.debug(`Finish: ${method}  (${this.id})`)
+            this.locked = false
             return result
           }
         },
       }
     )
+  }
+
+  set locked(value: boolean) {
+    // Error checking
+    if (this._locked === value) {
+      if (this._locked) {
+        throw new Error(`Plugin is already locked (${this.id})`)
+      }
+      if (!this._locked) {
+        throw new Error(`Plugin is already unlocked (${this.id})`)
+      }
+    }
+
+    // Set locked
+    this._locked = value
+
+    // Update promise
+    if (this._locked) {
+      this.available = new EasyPromise()
+    } else {
+      this.available?.resolve()
+    }
+  }
+
+  get locked() {
+    return this._locked
   }
 
   get enabled(): boolean {
@@ -72,6 +108,8 @@ class PlatformPlugin {
 
   async disable() {
     assert(this.enabled, 'This plugin is already disabled.')
+
+    await this.available
 
     this.vm!.dispose()
     this.vm = null

@@ -147,7 +147,7 @@ source.enable = (conf, settings, saveStateStr) => {
         _prefetchHome = undefined
         _prefetchHomeAuth = undefined
         didSaveState = true
-        log('Using save state')
+        // log('Using save state')
       }
     }
   } catch (ex) {
@@ -4228,4 +4228,4 @@ function randomInt(start, end) {
 }
 //#endregion
 
-console.log('LOADED')
+// console.log('LOADED')
