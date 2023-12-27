@@ -41,18 +41,13 @@ export const setSubscribedVideosCache = async (videos: SubscriptionCacheVideo[])
   )
 }
 
-export const deletePlatformVideos = async (platformUrl: string) => {
+export const clearSubscribedVideosCache = async () => {
   const db = await dbPromise
-  const videos = await db.getAllKeys('subscription_cache')
+  const videoUrls = await db.getAllKeys('subscription_cache')
 
   await Promise.all(
-    videos.map((video) => {
-      // TODO types?
-      // @ts-ignore
-      if (video.url.startsWith(platformUrl)) {
-        // @ts-ignore
-        return db.delete('subscription_cache', video.url)
-      }
+    videoUrls.map((videoUrl) => {
+      db.delete('subscription_cache', videoUrl)
     })
   )
 }

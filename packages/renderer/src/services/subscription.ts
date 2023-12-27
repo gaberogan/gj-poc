@@ -1,4 +1,8 @@
-import { getSubscribedVideosCache, setSubscribedVideosCache } from './SubscriptionCache'
+import {
+  clearSubscribedVideosCache,
+  getSubscribedVideosCache,
+  setSubscribedVideosCache,
+} from './SubscriptionCache'
 import { subcscriptionUrls } from './mocks'
 import { findPluginForChannelUrl } from './plugin'
 import { createGlobalSignal } from './solid'
@@ -12,12 +16,14 @@ export const hydratedSubscriptions = getSubscribedVideosCache().then((videos) =>
 
 export const refreshSubscribedVideos = async () => {
   await hydratedSubscriptions
-  await setSubscribedVideosCache(await fetchSubscribedVideos())
+  const videos = fetchSubscribedVideos()
+  await clearSubscribedVideosCache()
+  await setSubscribedVideosCache(await videos)
   _setSubscribedVideos(await getSubscribedVideosCache())
 }
 
 // TODO change default limit
-const fetchSubscribedVideos = async ({ channelLimit = 5 }: { channelLimit?: number } = {}) => {
+const fetchSubscribedVideos = async ({ channelLimit = 2 }: { channelLimit?: number } = {}) => {
   const urls = subcscriptionUrls.slice(0, channelLimit)
 
   // TODO allSettled, gracefully handle errors

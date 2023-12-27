@@ -1,3 +1,4 @@
+import { EasyPromise } from './EasyPromise'
 import PlatformPlugin from './PlatformPlugin'
 
 const idealInstances: number = 1 // TODO use 16
@@ -129,16 +130,33 @@ export const disablePlugin = async (configUrl: string) => {
   pluginPool.filter((p) => p.configUrl === configUrl).forEach(removeInstance)
 }
 
+const enableInProgress: { [key: string]: EasyPromise | undefined } = {}
+
 export const enablePlugin = async (configUrl: string) => {
+  if (configUrls.includes(configUrl)) {
+    throw new Error('Plugin is already enabled')
+  }
+
+  // Return the same promise if called multiple times
+  if (enableInProgress[configUrl]) {
+    return enableInProgress[configUrl]
+  }
+  enableInProgress[configUrl] = new EasyPromise()
+
+  // Enable the plugin
   const pluginInstances = pluginPool.filter((p) => p.configUrl === configUrl)
   if (pluginInstances.length === 0) {
     pluginInstances.push(await addInstance(configUrl))
   }
+  configUrls.push(configUrl)
+
+  // Resolve the promise
+  enableInProgress[configUrl]!.resolve()
+  delete enableInProgress[configUrl]
 }
 
 export const getPluginPool = async (configUrl: string) => {
   if (!configUrls.includes(configUrl)) {
-    configUrls.push(configUrl)
     await enablePlugin(configUrl)
   }
 

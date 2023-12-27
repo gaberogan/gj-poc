@@ -11,12 +11,13 @@ export default function Home() {
     const videos = await hydratedSubscriptions
 
     // Only refetch if nothing was in the cache
-    if (!videos.length) {
-      const start = performance.now()
-      const newVideos = await refreshSubscribedVideos()
-      const end = performance.now()
-      console.log(`Total: ${Math.round(end - start)}ms`)
-    }
+    // if (!videos.length) {
+    const start = performance.now()
+    const newVideos = await refreshSubscribedVideos()
+    const end = performance.now()
+    console.log(`End: ${Math.round(end)}ms`)
+    console.log(`Total: ${Math.round(end - start)}ms`)
+    // }
   })
 
   return <VideoList videos={subscribedVideos()} />

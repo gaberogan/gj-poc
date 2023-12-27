@@ -45,9 +45,9 @@ class PlatformPlugin {
           return async (...args: any[]) => {
             assert(this.enabled, 'This plugin is not enabled.')
             this.locked = true
-            console.debug(`Start: ${method} (${this.id})`)
+            console.debug(`Start: ${method} (${this.id}) (${performance.now()})`)
             const result = await executeFunction(this.vm!, `source.${method}`, args)
-            console.debug(`Finish: ${method}  (${this.id})`)
+            console.debug(`Finish: ${method}  (${this.id}) (${performance.now()})`)
             this.locked = false
             return result
           }
