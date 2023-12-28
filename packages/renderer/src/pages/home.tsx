@@ -1,24 +1,37 @@
 import VideoList from '@/components/VideoList'
 import {
-  hydratedSubscriptions,
-  refreshSubscribedVideos,
-  subscribedVideos,
-} from '@/services/subscription'
+  hasMoreSubVideos,
+  hydratedSubVideos,
+  loadMoreSubVideos,
+  refreshSubVideos,
+  subVideos,
+} from '@/services/subscriptionVideos'
 import { createEffect } from 'solid-js'
+
+const loadedSubscriptions = false
 
 export default function Home() {
   createEffect(async () => {
-    const videos = await hydratedSubscriptions
+    const videos = await hydratedSubVideos
 
-    // Only refetch if nothing was in the cache
+    // TODO remove !videos.length, use loadedSubscriptions
+    // Only refetches if nothing was in the cache, this disables pagination
     // if (!videos.length) {
     const start = performance.now()
-    const newVideos = await refreshSubscribedVideos()
+    await refreshSubVideos()
     const end = performance.now()
     console.log(`End: ${Math.round(end)}ms`)
     console.log(`Total: ${Math.round(end - start)}ms`)
     // }
   })
 
-  return <VideoList videos={subscribedVideos()} />
+  // TODO pull to refresh
+
+  return (
+    <VideoList
+      videos={subVideos()}
+      hasNextPage={hasMoreSubVideos()}
+      fetchNextPage={loadMoreSubVideos}
+    />
+  )
 }

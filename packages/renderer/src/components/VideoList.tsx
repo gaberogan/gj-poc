@@ -2,43 +2,56 @@ import { createWindowVirtualizer } from '@tanstack/solid-virtual'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { formatNumber } from '@/services/format'
 import './VideoList.css'
-import { For, createMemo } from 'solid-js'
+import { For, createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 
-type Video = Readonly<{
-  id: {
-    value: string
-  }
-  thumbnails: {
-    sources: {
-      quality: number
-      url: string
-    }[]
-  }
-  datetime: number
-  duration: number
-  name: string
-  url: string
-  viewCount: number
-  author: {
-    id: {
-      value: string
-    }
-    name: string
-    thumbnail: string
-    url: string
-  }
-}>
+// TODO scrolling jank on fetch, some rows are shrunk
+
+const GAP_SIZE = 30
 
 // Row virtualizer with dynamic item size
-function VideoList(props: { videos: any[] }) {
+function VideoList(props: {
+  videos: any[]
+  hasNextPage?: boolean
+  fetchNextPage?: () => Promise<void>
+}) {
+  const [fetchingNextPage, setFetchingNextPage] = createSignal(false)
+
   const numColumns = 4
 
+  const numRows = createMemo(() => Math.ceil(props.videos.length / numColumns))
+
+  // Observe height of first row on resize
+  let rowHeight = 0
+  let firstRowRef: HTMLDivElement
+  createEffect(async () => {
+    if (props.videos.length) {
+      const observer = new ResizeObserver(([{ target }]) => {
+        const height = (target as HTMLDivElement).offsetHeight
+        height && (rowHeight = height)
+      })
+      observer.observe(firstRowRef)
+      onCleanup(() => observer.disconnect())
+    }
+  })
+
+  // Create virtualizer
   const virtualizer = createMemo(() => {
     return createWindowVirtualizer({
-      count: Math.ceil(props.videos.length / numColumns),
-      estimateSize: () => 300,
-      overscan: 5,
+      count: numRows() + (props.hasNextPage ? 1 : 0),
+      estimateSize: () => rowHeight + GAP_SIZE,
+      overscan: 1,
     })
+  })
+
+  // Fetch next page
+  createEffect(async () => {
+    const [lastRow] = virtualizer().getVirtualItems().slice(-1)
+    if (lastRow?.index >= numRows() - 1 && props.hasNextPage && !fetchingNextPage()) {
+      console.log('Fetching next page...')
+      setFetchingNextPage(true)
+      await props.fetchNextPage?.()
+      setFetchingNextPage(false)
+    }
   })
 
   return (
@@ -58,18 +71,24 @@ function VideoList(props: { videos: any[] }) {
           transform: `translateY(${virtualizer().getVirtualItems()[0]?.start ?? 0}px)`,
           display: 'flex',
           'flex-direction': 'column',
-          gap: 30 + 'px',
+          gap: GAP_SIZE + 'px',
         }}
       >
         <For each={virtualizer().getVirtualItems()}>
           {({ index }: any) => {
+            // Last row detects when we need to load more, optional spinner
+            if (index > numRows() - 1) {
+              return <div style={{ height: '180px' }} />
+            }
+
             const startIndex = index * numColumns
             const videoRow = props.videos.slice(startIndex, startIndex + numColumns)
             return (
               <div class="videoRow">
                 <For each={videoRow}>
-                  {(vid: Video) => (
+                  {(vid: PlatformVideo) => (
                     <div
+                      ref={(el) => index === 0 && (firstRowRef = el)}
                       class="item"
                       style={{
                         'flex-basis': ['100%', '50%', '33.333%', '25%', '20%', '16.666%'][
