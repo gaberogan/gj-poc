@@ -6,16 +6,20 @@ import { hydratedSubVideos, refreshSubVideos } from '@/services/subscriptionVide
 const start = performance.now()
 hydratedSubVideos.then(refreshSubVideos).then(() => {
   const end = performance.now()
-  console.log(`End: ${Math.round(end)}ms`)
-  console.log(`Total: ${Math.round(end - start)}ms`)
+  console.debug(`End: ${Math.round(end)}ms`)
+  console.debug(`Total: ${Math.round(end - start)}ms`)
 })
 
 const App: Component = (props: any) => {
   return (
     <div class="app">
       <nav>
-        <h1>GrayJay Logo</h1>
-        <div>User Icon</div>
+        <a href="/">
+          <h1>GrayJay Logo / Go Home</h1>
+        </a>
+        <a href="/settings">
+          <div>User Icon / Open Settings</div>
+        </a>
       </nav>
       <div class="flex">
         <aside class="sidebar">

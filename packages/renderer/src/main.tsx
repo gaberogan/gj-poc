@@ -15,7 +15,8 @@ render(() => {
   return (
     <Router root={App}>
       <Route path="/" component={Home} />
-      <Route path="/about" component={lazy(() => import('./pages/about'))} />
+      <Route path="/watch" component={lazy(() => import('./pages/watch'))} />
+      <Route path="/settings" component={lazy(() => import('./pages/settings'))} />
       <Route path="**" component={lazy(() => import('./pages/404'))} />
     </Router>
   )

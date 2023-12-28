@@ -22,7 +22,7 @@ function VideoList(props: {
 
   // Observe height of first row on resize
   let rowHeight = 0
-  let firstRowRef: HTMLDivElement
+  let firstRowRef: HTMLElement
   createEffect(async () => {
     if (props.videos.length) {
       const observer = new ResizeObserver(([{ target }]) => {
@@ -86,7 +86,8 @@ function VideoList(props: {
               <div class="videoRow">
                 <For each={videoRow}>
                   {(vid: PlatformVideo) => (
-                    <div
+                    <a
+                      href={`/watch?url=${encodeURIComponent(vid.url)}`}
                       ref={(el) => index === 0 && (firstRowRef = el)}
                       class="item"
                       style={{
@@ -108,7 +109,7 @@ function VideoList(props: {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </a>
                   )}
                 </For>
               </div>

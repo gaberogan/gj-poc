@@ -1,7 +1,7 @@
 import { getPluginPool } from './PluginPool'
 
 // TODO error when adding multiple plugins
-const ENABLED_PLUGINS = ['/YoutubeConfig.json']
+export const ENABLED_PLUGINS = ['/YoutubeConfig.json']
 
 export const getPlugins = () => Promise.all(ENABLED_PLUGINS.map(getPluginPool))
 
