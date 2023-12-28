@@ -16,11 +16,75 @@
 
 body {
   margin: 0;
-  min-width: 768px;
+  min-width: 900px;
   min-height: 100vh;
 }
 
 #root {
   margin: 0 auto;
   width: 100%;
+}
+
+main {
+  flex-grow: 1;
+  padding: 16px;
+}
+
+/* TODO: Scoped CSS */
+.app {
+  display: flex;
+  flex-direction: column;
+
+  h1,
+  h2 {
+    font-weight: bold;
+  }
+
+  nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    padding-bottom: 8px;
+  }
+
+  .sidebar {
+    padding: 8px;
+
+    .tabs-section {
+      .tab {
+        padding: 8px;
+        border-radius: 8px;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+
+    .creator-section {
+      display: flex;
+      flex-direction: column;
+
+      h2 {
+        padding: 8px;
+      }
+
+      .creator-list {
+        .creator {
+          padding: 8px;
+          border-radius: 8px;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
+        }
+      }
+    }
+
+    .divider {
+      margin: 16px 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }

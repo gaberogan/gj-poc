@@ -59,7 +59,6 @@ function VideoList(props: {
       style={{
         height: virtualizer().getTotalSize() + 'px',
         position: 'relative',
-        margin: 24 + 'px',
       }}
     >
       <div
