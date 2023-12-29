@@ -8,7 +8,6 @@ import Layout from './components/Layout'
 import Home from './pages/home'
 import { hydratedSubVideos, refreshSubVideos } from '@/services/subscriptionVideos'
 
-// TODO uncomment
 // Load subscription videos
 const start = performance.now()
 hydratedSubVideos.then(refreshSubVideos).then(() => {

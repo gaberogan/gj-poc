@@ -13,25 +13,23 @@ const Layout: Component = (props: any) => {
           <div>User Icon / Open Settings</div>
         </a>
       </nav>
-      <div class="flex">
-        <aside class="sidebar">
-          <section class="tabs-section">
-            <div class="tab">Home</div>
-            <div class="tab">Subscriptions</div>
-            <div class="tab">Playlists</div>
-          </section>
-          <div class="divider" />
-          <section class="creator-section">
-            <h2>Subscriptions</h2>
-            <div class="creator-list">
-              <div class="creator">Veritasium</div>
-              <div class="creator">Linus Tech Tips</div>
-              <div class="creator">Gordon Ramsay</div>
-            </div>
-          </section>
-        </aside>
-        <main>{props.children}</main>
-      </div>
+      <aside class="sidebar">
+        <section class="tabs-section">
+          <div class="tab">Home</div>
+          <div class="tab">Subscriptions</div>
+          <div class="tab">Playlists</div>
+        </section>
+        <div class="divider" />
+        <section class="creator-section">
+          <h2>Subscriptions</h2>
+          <div class="creator-list">
+            <div class="creator">Veritasium</div>
+            <div class="creator">Linus Tech Tips</div>
+            <div class="creator">Gordon Ramsay</div>
+          </div>
+        </section>
+      </aside>
+      <main>{props.children}</main>
     </div>
   )
 }

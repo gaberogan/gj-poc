@@ -18,6 +18,7 @@ body {
   margin: 0;
   min-width: 1080px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 #root {
@@ -26,14 +27,17 @@ body {
 }
 
 main {
-  flex-grow: 1;
+  overflow-y: scroll;
   padding: 16px;
 }
 
 /* TODO: Scoped CSS */
 .Layout {
-  display: flex;
-  flex-direction: column;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  grid-gap: 8px;
 
   h1,
   h2 {
@@ -41,6 +45,7 @@ main {
   }
 
   nav {
+    grid-column: 1 / span 2;
     display: flex;
     justify-content: space-between;
     padding: 16px;
