@@ -34,5 +34,6 @@ declare global {
       thumbnail: string
       url: string
     }
+    fetchedAt: number // Added by us
   }
 }

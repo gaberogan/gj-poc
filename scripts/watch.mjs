@@ -3,7 +3,7 @@ import { createServer, build } from 'vite'
 import electron from 'electron'
 
 // TODO does this work
-const flags = ['--ignore-connections-limit=youtube.com']
+const flags = ['--ignore-connections-limit=youtube.com', '--js-flags="--stack-size=2048"']
 
 /**
  * @type {(server: import('vite').ViteDevServer) => Promise<import('rollup').RollupWatcher>}
@@ -28,7 +28,7 @@ function watchMain(server) {
         name: 'electron-main-watcher',
         writeBundle() {
           electronProcess && electronProcess.kill()
-          electronProcess = spawn(electron, ['.', ...flags], { stdio: 'inherit', env })
+          electronProcess = spawn(electron, [...flags, '.'], { stdio: 'inherit', env })
         },
       },
     ],

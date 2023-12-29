@@ -16,7 +16,7 @@
 
 body {
   margin: 0;
-  min-width: 900px;
+  min-width: 1080px;
   min-height: 100vh;
 }
 
@@ -31,7 +31,7 @@ main {
 }
 
 /* TODO: Scoped CSS */
-.app {
+.Layout {
   display: flex;
   flex-direction: column;
 

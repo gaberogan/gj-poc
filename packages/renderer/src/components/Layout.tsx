@@ -1,21 +1,13 @@
 import { Component } from 'solid-js'
-import './app.css'
-import { hydratedSubVideos, refreshSubVideos } from '@/services/subscriptionVideos'
+import './Layout.css'
 
-// Load subscription videos
-const start = performance.now()
-hydratedSubVideos.then(refreshSubVideos).then(() => {
-  const end = performance.now()
-  console.debug(`End: ${Math.round(end)}ms`)
-  console.debug(`Total: ${Math.round(end - start)}ms`)
-})
-
-const App: Component = (props: any) => {
+const Layout: Component = (props: any) => {
   return (
-    <div class="app">
+    <div class="Layout">
       <nav>
-        <a href="/">
-          <h1>GrayJay Logo / Go Home</h1>
+        <a href="/" class="flex items-center gap-1">
+          <img src="/logo.svg" style="height: 40px" />
+          <h1 class="text-xl">GrayJay</h1>
         </a>
         <a href="/settings">
           <div>User Icon / Open Settings</div>
@@ -44,4 +36,4 @@ const App: Component = (props: any) => {
   )
 }
 
-export default App
+export default Layout

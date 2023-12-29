@@ -11,6 +11,16 @@ class PluginProxy {
   configUrl: string
   bridge: any
 
+  get config() {
+    const instance = pluginPool.find((p) => p.configUrl === this.configUrl)
+
+    if (!instance) {
+      throw new Error('Please initialize plugin before accessing config')
+    }
+
+    return instance.config!
+  }
+
   constructor(configUrl: string) {
     this.configUrl = configUrl
     this.bridge = new Proxy(

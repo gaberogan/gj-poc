@@ -4,7 +4,8 @@ import { formatNumber } from '@/services/format'
 import './VideoList.css'
 import { For, createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 
-// TODO scrolling jank on fetch, some rows are shrunk
+// TODO use normal virtualizer not with window, don't scroll with window maybe use css grid
+// TODO scrolling jank on fetch, some rows are shrunk use flex-shrink: 0
 
 const GAP_SIZE = 30
 

@@ -7,17 +7,38 @@ export const getPlugins = () => Promise.all(ENABLED_PLUGINS.map(getPluginPool))
 
 export const findPluginForChannelUrl = async (url: string) => {
   const plugins = await getPlugins()
-  const channelMatches = await Promise.all(
+  const matches = await Promise.all(
     plugins.map(async (plugin) => {
-      const isChannelUrl = await plugin.bridge.isChannelUrl(url)
+      const match = await plugin.bridge.isChannelUrl(url)
       return {
         plugin,
-        isChannelUrl,
+        match,
       }
     })
   )
 
-  const result = channelMatches.find((x) => x.isChannelUrl)
+  const result = matches.find((x) => x.match)
+
+  if (!result) {
+    throw new Error(`No plugin found matching url ${url}`)
+  }
+
+  return result.plugin
+}
+
+export const findPluginForVideoUrl = async (url: string) => {
+  const plugins = await getPlugins()
+  const matches = await Promise.all(
+    plugins.map(async (plugin) => {
+      const match = await plugin.bridge.isContentDetailsUrl(url)
+      return {
+        plugin,
+        match,
+      }
+    })
+  )
+
+  const result = matches.find((x) => x.match)
 
   if (!result) {
     throw new Error(`No plugin found matching url ${url}`)
