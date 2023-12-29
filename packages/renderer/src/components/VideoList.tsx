@@ -17,20 +17,26 @@ function VideoList(props: {
   let containerRef: HTMLElement | null = null
 
   const [rowHeight, setRowHeight] = createSignal(0)
+  const [rowWidth, setRowWidth] = createSignal(0)
   const [firstRowRef, setFirstRowRef] = createSignal<HTMLElement | null>(null)
   const [fetchingNextPage, setFetchingNextPage] = createSignal(false)
 
-  const numColumns = 4
+  const numColumns = createMemo(() => Math.max(1, Math.floor(rowWidth() / 300)))
+  const numRows = createMemo(() => Math.ceil(props.videos.length / numColumns()))
 
-  const numRows = createMemo(() => Math.ceil(props.videos.length / numColumns))
+  createEffect(() => {
+    console.log(numColumns())
+  })
 
   // Observe height of first row on resize
   createEffect(() => {
     if (firstRowRef()) {
       const observer = new ResizeObserver(([{ target }]) => {
         const height = (target as HTMLDivElement).offsetHeight
+        const width = target.parentElement!.offsetWidth
         if (height) {
           setRowHeight(height)
+          setRowWidth(width)
         }
       })
       observer.observe(firstRowRef()!)
@@ -87,10 +93,10 @@ function VideoList(props: {
                 return <div style={{ height: '180px' }} />
               }
 
-              const startIndex = index * numColumns
-              const videoRow = props.videos.slice(startIndex, startIndex + numColumns)
+              const startIndex = index * numColumns()
+              const videoRow = props.videos.slice(startIndex, startIndex + numColumns())
               return (
-                <div class="videoRow" style={{ '--column-count': numColumns }}>
+                <div class="videoRow" style={{ '--column-count': numColumns() }}>
                   <For each={videoRow}>
                     {(vid: PlatformVideo) => (
                       <a
@@ -99,7 +105,7 @@ function VideoList(props: {
                         class="item"
                         style={{
                           'flex-basis': ['100%', '50%', '33.333%', '25%', '20%', '16.666%'][
-                            numColumns - 1
+                            numColumns() - 1
                           ],
                         }}
                       >
