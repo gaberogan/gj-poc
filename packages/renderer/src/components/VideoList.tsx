@@ -106,8 +106,7 @@ function VideoList(props: {
                       >
                         <img class="imageUrl" src={vid.thumbnails.sources.slice(-1)[0].url} />
                         <div class="metadata">
-                          {/* <img class="authorImageUrl" src={vid.author.thumbnail} /> */}
-
+                          <img class="authorImageUrl" src={vid.author.thumbnail} />
                           <div class="metadata-right">
                             <div class="title">{vid.name}</div>
                             <div class="small-metadata">{vid.author.name}</div>

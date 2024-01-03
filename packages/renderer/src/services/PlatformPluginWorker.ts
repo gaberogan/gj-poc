@@ -181,7 +181,7 @@ const executeFunction = async (worker: Worker, funcName: string, args: any[]) =>
 const evalScript = `
   self.onmessage = ev => {
     try {
-      self.postMessage(eval(ev.data))
+      self.postMessage(JSON.parse(JSON.stringify(eval(ev.data))))
     } catch (err) {
       console.error(err)
       throw err
@@ -242,10 +242,11 @@ http = {
 const securityScript = `
   function secure(prop) {
     Object.defineProperty(self, prop, {
-      get: () => { throw new Error(\`Security Exception: cannot access \${prop}\`) },
+      get: () => { throw new Error(\`GrayJay Security Exception: cannot access \${prop}\`) },
       configurable: false
     });
   }
   secure('fetch')
   secure('XMLHttpRequest')
+  secure('importScripts')
 `
