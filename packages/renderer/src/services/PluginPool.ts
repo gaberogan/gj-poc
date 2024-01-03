@@ -1,5 +1,5 @@
 import { EasyPromise } from './EasyPromise'
-import PlatformPlugin from './PlatformPlugin'
+import PlatformPlugin from './PlatformPluginWorker'
 
 const idealInstances: number = 1 // TODO use 16
 const maxInstances: number = 96

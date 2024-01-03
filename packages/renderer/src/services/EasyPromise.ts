@@ -1,6 +1,7 @@
 export class EasyPromise<T = unknown> extends Promise<T> {
-  isResolved = false
+  isSettled = false
   resolve: (value?: T) => EasyPromise<T>
+  reject: (reason?: any) => EasyPromise<T>
 
   constructor(
     executor: (
@@ -9,16 +10,27 @@ export class EasyPromise<T = unknown> extends Promise<T> {
     ) => void = () => {}
   ) {
     let resolveCallback: (value: T | PromiseLike<T>) => void
+    let rejectCallback: (reason?: any) => void
 
     super((resolve, reject) => {
       resolveCallback = resolve
+      rejectCallback = reject
       executor(resolve, reject)
     })
 
     this.resolve = (value) => {
-      if (!this.isResolved) {
+      if (!this.isSettled) {
         resolveCallback?.(value as T)
-        this.isResolved = true
+        this.isSettled = true
+      }
+
+      return this
+    }
+
+    this.reject = (reason) => {
+      if (!this.isSettled) {
+        rejectCallback?.(reason)
+        this.isSettled = true
       }
 
       return this

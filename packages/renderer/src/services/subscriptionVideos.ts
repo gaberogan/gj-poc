@@ -71,9 +71,6 @@ const fetchVideosForChannels = async (urls: string[]) => {
     })
   )
 
-  // Log errors
-  results.forEach((x) => x.status === 'rejected' && console.error(x.reason))
-
   // Get pagers
   pagers = results
     .map((x) => (x.status === 'fulfilled' ? x.value : null))
