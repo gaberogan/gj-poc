@@ -24,10 +24,6 @@ function VideoList(props: {
   const numColumns = createMemo(() => Math.max(1, Math.floor(rowWidth() / 300)))
   const numRows = createMemo(() => Math.ceil(props.videos.length / numColumns()))
 
-  createEffect(() => {
-    console.log(numColumns())
-  })
-
   // Observe height of first row on resize
   createEffect(() => {
     if (firstRowRef()) {
@@ -59,7 +55,6 @@ function VideoList(props: {
   createEffect(async () => {
     const [lastRow] = virtualizer().getVirtualItems().slice(-1)
     if (lastRow?.index >= numRows() - 1 && props.hasNextPage && !fetchingNextPage()) {
-      console.log('Fetching next page...')
       setFetchingNextPage(true)
       await props.fetchNextPage?.()
       setFetchingNextPage(false)
@@ -67,7 +62,7 @@ function VideoList(props: {
   })
 
   return (
-    <div ref={(el) => (containerRef = el)}>
+    <div ref={(el) => (containerRef = el)} style={{ height: '100%' }}>
       <div
         style={{
           height: virtualizer().getTotalSize() + 'px',
