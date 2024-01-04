@@ -7,7 +7,7 @@ import {
   enabledPlugins,
 } from '@/services/plugin'
 import _ from 'lodash'
-import { For, Match, Show, Switch } from 'solid-js'
+import { For, Show } from 'solid-js'
 
 export default function Settings() {
   const only1Enabled = () => enabledPlugins().length === 1
@@ -22,20 +22,18 @@ export default function Settings() {
     return (
       <div class="flex gap-4 py-4">
         <div>{plugin.config.name}</div>
-        <Switch>
-          <Match when={isEnabled}>
-            <button
-              disabled={only1Enabled()}
-              class={only1Enabled() ? 'opacity-50' : ''}
-              onClick={disable}
-            >
-              Disable
-            </button>
-          </Match>
-          <Match when={!isEnabled}>
-            <button onClick={enable}>Enable</button>
-          </Match>
-        </Switch>
+        <Show when={isEnabled}>
+          <button
+            disabled={only1Enabled()}
+            class={only1Enabled() ? 'opacity-50' : ''}
+            onClick={disable}
+          >
+            Disable
+          </button>
+        </Show>
+        <Show when={!isEnabled}>
+          <button onClick={enable}>Enable</button>
+        </Show>
       </div>
     )
   }
