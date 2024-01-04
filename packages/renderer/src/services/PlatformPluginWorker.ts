@@ -109,7 +109,11 @@ class PlatformPlugin {
     await this.bridge.enable(this.config, {}, savedState[this.configUrl])
 
     // Save state
-    savedState[this.configUrl] = await this.bridge.saveState()
+    try {
+      savedState[this.configUrl] = await this.bridge.saveState()
+    } catch (e) {
+      // Plugin hasn't defined saveState
+    }
   }
 
   async disable() {
@@ -179,25 +183,28 @@ const executeFunction = async (worker: Worker, funcName: string, args: any[]) =>
 }
 
 const evalScript = `
-  self.onmessage = ev => {
-    try {
-      self.postMessage(JSON.parse(JSON.stringify(eval(ev.data))))
-    } catch (err) {
-      console.error(err)
+self.onmessage = ev => {
+  try {
+    self.postMessage(JSON.parse(JSON.stringify(eval(ev.data) ?? null)))
+  } catch (err) {
+    if (/source.(\\w+) is not a function/.test(err.message)) {
+      self.postMessage(null)
+    } else {
       throw err
     }
   }
+}
 `
 
 const bridgePackageScript = `
-  _refs = {},
-  bridge = {
-    log: console.debug,
-    isLoggedIn: () => false,
-  }
-  console = {
-    log: console.debug,
-  }
+_refs = {},
+bridge = {
+  log: console.debug,
+  isLoggedIn: () => false,
+}
+console = {
+  log: console.debug,
+}
 `
 
 // TODO secure fetch with domain allowlist
@@ -212,6 +219,7 @@ const _fetch = ((XMLHttpRequest) => ({
   const xhr = new XMLHttpRequest();
   xhr.open(method, url, false/*synchronous*/);
   // xhr.setDisableHeaderCheck(true); // TODO allow setting Cookie header, may need nodeIntegrationInWorker + node-xmlhttprequest
+  delete headers.Cookie
   Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
   xhr.send(body);
   const isOk = xhr.status >= 200 && xhr.status < 299
@@ -243,13 +251,13 @@ http = {
 
 // TODO secure all globals that are insecure e.g. import
 const securityScript = `
-  function secure(prop) {
-    Object.defineProperty(self, prop, {
-      get: () => { throw new Error(\`GrayJay Security Exception: cannot access \${prop}\`) },
-      configurable: false
-    });
-  }
-  secure('fetch')
-  secure('XMLHttpRequest')
-  secure('importScripts')
+function secure(prop) {
+  Object.defineProperty(self, prop, {
+    get: () => { throw new Error(\`GrayJay Security Exception: cannot access \${prop}\`) },
+    configurable: false
+  });
+}
+secure('fetch')
+secure('XMLHttpRequest')
+secure('importScripts')
 `
