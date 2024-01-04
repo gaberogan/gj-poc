@@ -249,7 +249,7 @@ http = {
 }
 `
 
-// TODO secure all globals that are insecure e.g. import
+// TODO secure all insecure globals
 const securityScript = `
 function secure(prop) {
   Object.defineProperty(self, prop, {

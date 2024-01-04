@@ -1,6 +1,6 @@
 import * as store from 'idb-keyval'
 import { subscriptionUrls } from './mocks'
-import { enabledPlugins, findPluginForChannelUrl, pluginsEnabled } from './plugin'
+import { enabledPlugins, findPluginForChannelUrl, pluginsLoaded } from './plugin'
 import { createGlobalSignal } from './solid'
 import _ from 'lodash'
 
@@ -51,7 +51,7 @@ export const hydratedSubVideos = cache.get().then(_setSubVideos)
  */
 export const refreshSubVideos = async () => {
   await hydratedSubVideos
-  await pluginsEnabled
+  await pluginsLoaded
   const channelUrls = await getPrioritizedChannels()
   const cachedVideos = getSubVideos()
   let videos = await fetchVideosForChannels(channelUrls)
@@ -62,7 +62,7 @@ export const refreshSubVideos = async () => {
 
 const getPrioritizedChannels = async () => {
   await hydratedSubVideos
-  await pluginsEnabled
+  await pluginsLoaded
   const videos = getSubVideos()
   const fetchTimestamps = Object.fromEntries(
     _.uniqBy(videos, 'author.url').map((v) => [v.author.url, v.fetchedAt])

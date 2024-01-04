@@ -135,14 +135,14 @@ const scaleDown = async () => {
   )
 }
 
-export const disablePlugin = async (configUrl: string) => {
+export const removePluginFromPool = async (configUrl: string) => {
   configUrls = configUrls.filter((p) => p !== configUrl)
   pluginPool.filter((p) => p.configUrl === configUrl).forEach(removeInstance)
 }
 
 const enableInProgress: { [key: string]: EasyPromise | undefined } = {}
 
-export const enablePlugin = async (configUrl: string) => {
+export const addPluginToPool = async (configUrl: string) => {
   if (configUrls.includes(configUrl)) {
     throw new Error('Plugin is already enabled')
   }
@@ -167,7 +167,7 @@ export const enablePlugin = async (configUrl: string) => {
 
 export const getPluginPool = async (configUrl: string) => {
   if (!configUrls.includes(configUrl)) {
-    await enablePlugin(configUrl)
+    await addPluginToPool(configUrl)
   }
 
   return new PluginProxy(configUrl)
