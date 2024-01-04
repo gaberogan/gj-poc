@@ -34,9 +34,13 @@ const VideoPlayer = (props: { url: string }) => {
       poster: video.thumbnails.sources.slice(-1)[0].url,
       sources: [
         {
-          src: '/example_video2.mpd',
-          type: 'application/dash+xml',
+          src: video.video.videoSources.slice(-1)[0].url,
+          type: 'video/mp4',
         },
+        // {
+        //   src: '/example_video2.mpd',
+        //   type: 'application/dash+xml',
+        // },
       ],
     })
 

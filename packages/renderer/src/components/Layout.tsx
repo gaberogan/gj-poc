@@ -15,9 +15,9 @@ const Layout: Component = (props: any) => {
       </nav>
       <aside class="sidebar">
         <section class="tabs-section">
-          <div class="tab">Home</div>
-          <div class="tab">Subscriptions</div>
-          <div class="tab">Playlists</div>
+          <a href="/">Home</a>
+          <a href="/">Subscriptions</a>
+          <a>Playlists</a>
         </section>
         <div class="divider" />
         <section class="creator-section">

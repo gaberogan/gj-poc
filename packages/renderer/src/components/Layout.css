@@ -55,7 +55,10 @@ main {
     padding: 8px;
 
     .tabs-section {
-      .tab {
+      display: flex;
+      flex-direction: column;
+
+      a {
         padding: 8px;
         border-radius: 8px;
 

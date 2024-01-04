@@ -229,6 +229,8 @@ const _fetch = ((XMLHttpRequest) => ({
 http = {
   GET: (url, headers) => _fetch({ url, headers }),
   POST: (url, body, headers) => _fetch({ url, headers }),
+  request: (method, url, headers) => _fetch({ method, url, headers }),
+  requestWithBody: (method, url, body, headers) =>  _fetch({ method, url, headers, body }),
   batch: () => {
     const requests = []
     const batcher = {
@@ -238,6 +240,14 @@ http = {
       },
       POST: (url, body, headers) => {
         requests.push({ url, headers, body })
+        return batcher
+      },
+      request: (method, url, headers) => {
+        requests.push({ method, url, headers })
+        return batcher
+      },
+      requestWithBody: (method, url, body, headers) => {
+        requests.push({ method, url, headers, body })
         return batcher
       },
       execute: () => {

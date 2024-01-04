@@ -32,7 +32,7 @@ const [_subVideos, _setSubVideos] = createGlobalSignal<PlatformVideo[]>([])
  */
 export const getSubVideos = () => {
   const subVideos = _subVideos()
-  return filterEnabledVideos(subVideos)
+  return filterByEnabledPlugins(subVideos, 'url')
 }
 
 // Subscribed videos setter
@@ -51,9 +51,9 @@ export const hydratedSubVideos = cache.get().then(_setSubVideos)
  */
 export const refreshSubVideos = async () => {
   await hydratedSubVideos
-  await pluginsLoaded
+  await pluginsLoaded()
   const channelUrls = await getPrioritizedChannels()
-  const cachedVideos = getSubVideos()
+  const cachedVideos = _subVideos()
   let videos = await fetchVideosForChannels(channelUrls)
   videos = _.uniqBy([...videos, ...cachedVideos], 'id.value')
   videos = _.orderBy(videos, 'datetime', 'desc')
@@ -62,12 +62,13 @@ export const refreshSubVideos = async () => {
 
 const getPrioritizedChannels = async () => {
   await hydratedSubVideos
-  await pluginsLoaded
+  await pluginsLoaded()
   const videos = getSubVideos()
   const fetchTimestamps = Object.fromEntries(
     _.uniqBy(videos, 'author.url').map((v) => [v.author.url, v.fetchedAt])
   )
-  let channels = subscriptionUrls.map((url) => ({ url, fetchedAt: fetchTimestamps[url] || 0 }))
+  let channelUrls = filterByEnabledPlugins(subscriptionUrls)
+  let channels = channelUrls.map((url) => ({ url, fetchedAt: fetchTimestamps[url] || 0 }))
   channels = _.orderBy(channels, 'fetchedAt', 'asc')
   return channels.map((c) => c.url).slice(0, RATE_LIMIT)
 }
@@ -101,8 +102,10 @@ const fetchVideosForChannels = async (urls: string[]) => {
 /**
  * NOTE If you use this, you might need to `await pluginsEnabled`
  * TODO avoid using platformUrls not part of spec, store plugin id in cache instead
+ * e.g. filterByEnabledPlugins([{ url: 'http...' }], 'url')
  */
-const filterEnabledVideos = (videos: PlatformVideo[]) => {
+const filterByEnabledPlugins = <T extends any[]>(videos: T, key?: string): T => {
   const platformUrls = enabledPlugins().map((x) => x.config.platformUrl)
-  return videos.filter((vid) => platformUrls.some((pUrl) => vid.url.startsWith(pUrl)))
+  const accessor = _.iteratee(key as any)
+  return videos.filter((vid) => platformUrls.some((pUrl) => accessor(vid).startsWith(pUrl))) as T
 }

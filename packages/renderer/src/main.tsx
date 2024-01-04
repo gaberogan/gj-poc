@@ -6,14 +6,6 @@ import { render } from 'solid-js/web'
 import { Route, Router } from '@solidjs/router'
 import Layout from './components/Layout'
 import Home from './pages/home'
-import { hydratedSubVideos, refreshSubVideos } from '@/services/subscriptionVideos'
-
-// Load subscription videos
-const start = performance.now()
-hydratedSubVideos.then(refreshSubVideos).then(() => {
-  const end = performance.now()
-  console.debug(`Total subscription fetch time: ${Math.round(end - start)}ms`)
-})
 
 render(() => {
   onMount(() => {

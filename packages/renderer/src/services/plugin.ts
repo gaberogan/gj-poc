@@ -2,6 +2,7 @@ import _ from 'lodash'
 import { PluginProxy, addPluginToPool, getPluginPool, removePluginFromPool } from './PluginPool'
 import { createGlobalSignal, createStoredGlobalSignal } from './solid'
 import { fetchJSONMemo } from './fetch'
+import { EasyPromise } from './EasyPromise'
 
 // Plugin URLs
 
@@ -68,14 +69,21 @@ const loadDisabledPlugins = async () => {
 
 // Load all plugins
 
-export const loadPlugins = () => Promise.all([loadEnabledPlugins(), loadDisabledPlugins()])
+let _pluginsLoaded: EasyPromise<void>
+export const pluginsLoaded = () => _pluginsLoaded
 
-export const pluginsLoaded = loadPlugins().then(() => {})
+export const loadPlugins = async () => {
+  _pluginsLoaded = new EasyPromise()
+  await Promise.all([loadEnabledPlugins(), loadDisabledPlugins()])
+  _pluginsLoaded.resolve()
+}
+
+loadPlugins()
 
 // Find plugin for channel URL
 
 export const findPluginForChannelUrl = async (url: string) => {
-  await pluginsLoaded
+  await pluginsLoaded()
   const matches = await Promise.all(
     enabledPlugins().map(async (plugin) => {
       const match = await plugin.bridge.isChannelUrl(url)
@@ -98,7 +106,7 @@ export const findPluginForChannelUrl = async (url: string) => {
 // Find plugin for video URL
 
 export const findPluginForVideoUrl = async (url: string) => {
-  await pluginsLoaded
+  await pluginsLoaded()
   const matches = await Promise.all(
     enabledPlugins().map(async (plugin) => {
       const match = await plugin.bridge.isContentDetailsUrl(url)
