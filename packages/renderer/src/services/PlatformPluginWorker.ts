@@ -95,11 +95,11 @@ class PlatformPlugin {
     const code = `
     ${await polyfillScript}
     ${await sourceScript}
-    ${bridgePackageScript}
     ${httpPackageScript}
+    ${evalScript}
+    ${bridgePackageScript}
     ${securityScript}
-    ${await pluginScript}
-    ${evalScript}`
+    ${await pluginScript}`
 
     // Create worker
     const codeBlob = new Blob([code], { type: 'application/javascript' })
@@ -192,8 +192,11 @@ const evalScript = `
 const bridgePackageScript = `
   _refs = {},
   bridge = {
-    log: console.log,
+    log: console.debug,
     isLoggedIn: () => false,
+  }
+  console = {
+    log: console.debug,
   }
 `
 

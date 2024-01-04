@@ -1,13 +1,13 @@
 import { EasyPromise } from './EasyPromise'
 import PlatformPlugin from './PlatformPluginWorker'
 
-const idealInstances: number = 1 // TODO use 16
+const idealInstances: number = 1
 const maxInstances: number = 96
 
 let pluginPool: PlatformPlugin[] = []
 let configUrls: string[] = []
 
-class PluginProxy {
+export class PluginProxy {
   configUrl: string
   bridge: any
 

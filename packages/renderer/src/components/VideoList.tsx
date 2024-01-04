@@ -62,7 +62,7 @@ function VideoList(props: {
   })
 
   return (
-    <div ref={(el) => (containerRef = el)} style={{ height: '100%' }}>
+    <div ref={(el) => (containerRef = el)} style={{ height: '100%', 'overflow-y': 'scroll' }}>
       <div
         style={{
           height: virtualizer().getTotalSize() + 'px',
@@ -98,11 +98,6 @@ function VideoList(props: {
                         href={`/watch?url=${encodeURIComponent(vid.url)}`}
                         ref={(el) => index === 0 && setFirstRowRef(el)}
                         class="item"
-                        style={{
-                          'flex-basis': ['100%', '50%', '33.333%', '25%', '20%', '16.666%'][
-                            numColumns() - 1
-                          ],
-                        }}
                       >
                         <img class="imageUrl" src={vid.thumbnails.sources.slice(-1)[0].url} />
                         <div class="metadata">

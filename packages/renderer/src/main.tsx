@@ -12,8 +12,7 @@ import { hydratedSubVideos, refreshSubVideos } from '@/services/subscriptionVide
 const start = performance.now()
 hydratedSubVideos.then(refreshSubVideos).then(() => {
   const end = performance.now()
-  console.debug(`End: ${Math.round(end)}ms`)
-  console.debug(`Total: ${Math.round(end - start)}ms`)
+  console.debug(`Total subscription fetch time: ${Math.round(end - start)}ms`)
 })
 
 render(() => {

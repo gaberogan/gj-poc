@@ -3,7 +3,7 @@ import { createServer, build } from 'vite'
 import electron from 'electron'
 
 // TODO does this work
-const flags = ['--ignore-connections-limit=youtube.com', '--js-flags="--stack-size=2048"']
+const flags = ['--ignore-connections-limit=youtube.com']
 
 /**
  * @type {(server: import('vite').ViteDevServer) => Promise<import('rollup').RollupWatcher>}

@@ -2,7 +2,7 @@ import { findPluginForVideoUrl } from './plugin'
 import { createGlobalSignal } from './solid'
 
 // Video details global variable
-const [_videoDetail, _setVideoDetail] = createGlobalSignal<PlatformVideo>([])
+const [_videoDetail, _setVideoDetail] = createGlobalSignal<PlatformVideo | null>(null)
 export const videoDetail = _videoDetail
 
 // Fetch video details

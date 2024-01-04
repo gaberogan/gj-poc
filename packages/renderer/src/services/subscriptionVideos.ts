@@ -1,6 +1,6 @@
-import * as store from 'idb-keyval' // TODO use a file-based keyval store after moving to Node.js
+import * as store from 'idb-keyval'
 import { subscriptionUrls } from './mocks'
-import { findPluginForChannelUrl } from './plugin'
+import { enabledPlugins, findPluginForChannelUrl, pluginsEnabled } from './plugin'
 import { createGlobalSignal } from './solid'
 import _ from 'lodash'
 
@@ -15,16 +15,24 @@ interface Pager {
 }
 let pagers: Pager[]
 
-// Subscription videos global variable
-const [_subVideos, _setSubVideos] = createGlobalSignal<PlatformVideo[]>([])
-export const subVideos = _subVideos
-
 // Typed subscription cache
 const CACHE_KEY = 'subscription_cache'
 const cache = {
   get: (): Promise<PlatformVideo[]> => store.get<PlatformVideo[]>(CACHE_KEY).then((x) => x ?? []),
   set: (value: PlatformVideo[]): Promise<void> => store.set(CACHE_KEY, value),
   clear: (): Promise<void> => store.del(CACHE_KEY),
+}
+
+// Subscription videos global variable
+const [_subVideos, _setSubVideos] = createGlobalSignal<PlatformVideo[]>([])
+
+/**
+ * Subscribed videos getter
+ * Changes when cache updates or enabled plugins change
+ */
+export const getSubVideos = () => {
+  const subVideos = _subVideos()
+  return filterEnabledVideos(subVideos)
 }
 
 // Subscribed videos setter
@@ -43,8 +51,9 @@ export const hydratedSubVideos = cache.get().then(_setSubVideos)
  */
 export const refreshSubVideos = async () => {
   await hydratedSubVideos
+  await pluginsEnabled
   const channelUrls = await getPrioritizedChannels()
-  const cachedVideos = await cache.get()
+  const cachedVideos = getSubVideos()
   let videos = await fetchVideosForChannels(channelUrls)
   videos = _.uniqBy([...videos, ...cachedVideos], 'id.value')
   videos = _.orderBy(videos, 'datetime', 'desc')
@@ -52,7 +61,9 @@ export const refreshSubVideos = async () => {
 }
 
 const getPrioritizedChannels = async () => {
-  const videos = await cache.get()
+  await hydratedSubVideos
+  await pluginsEnabled
+  const videos = getSubVideos()
   const fetchTimestamps = Object.fromEntries(
     _.uniqBy(videos, 'author.url').map((v) => [v.author.url, v.fetchedAt])
   )
@@ -87,55 +98,11 @@ const fetchVideosForChannels = async (urls: string[]) => {
   return videos
 }
 
-// TODO not sure how pagination will work now
-
-// Is there a next page (turn this and pagers into global signals)
-// setHasMoreSubVideos(pagers.some((x) => x.hasMore))
-
-// Keep track of pagers and hasNextPage so we can paginate
-// const [_hasMoreSubVideos, setHasMoreSubVideos] = createGlobalSignal(false)
-// // Expose this so infinite scrollers can know if we have more pages
-// export const hasMoreSubVideos = _hasMoreSubVideos
-
-// /**
-//  * Load the next page of subscribed videos
-//  */
-// export const loadMoreSubVideos = async () => {
-//   const cachedVideos: any[] = (await cache.get()) ?? []
-//   let videos = await fetchNextPageSubVideos()
-//   videos = _.uniqBy([...cachedVideos, ...videos], 'id.value')
-//   await setSubVideos(videos)
-// }
-
-// Fetch the next page of subscribed videos
-// const fetchNextPageSubVideos = async (): Promise<PlatformVideo[]> => {
-//   if (!pagers) {
-//     throw new Error('Must fetch first page before fetching next page')
-//   }
-
-//   // Get next page of videos
-//   const results = await Promise.allSettled<Pager>(
-//     pagers.map(async (pager) => {
-//       return pager.hasMore ? await pager.bridge.nextPage() : []
-//     })
-//   )
-//   pagers = results
-//     .map((x) => (x.status === 'fulfilled' ? x.value : null))
-//     .filter((x) => x) as Pager[]
-//   let videos = pagers.map((pager) => pager.results).flat()
-
-//   // Log errors
-//   results.forEach((x) => x.status === 'rejected' && console.error(x.reason))
-
-//   // Add fetch timestamp to videos
-//   const now = Date.now()
-//   videos = videos.map((v) => {
-//     v.fetchedAt = now
-//     return v
-//   })
-
-//   // Is there a next page
-//   setHasMoreSubVideos(pagers.some((x) => x.hasMore))
-
-//   return videos
-// }
+/**
+ * NOTE If you use this, you might need to `await pluginsEnabled`
+ * TODO avoid using platformUrls not part of spec, store plugin id in cache instead
+ */
+const filterEnabledVideos = (videos: PlatformVideo[]) => {
+  const platformUrls = enabledPlugins().map((x) => x.config.platformUrl)
+  return videos.filter((vid) => platformUrls.some((pUrl) => vid.url.startsWith(pUrl)))
+}
