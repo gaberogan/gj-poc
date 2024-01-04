@@ -100,7 +100,7 @@ const fetchVideosForChannels = async (urls: string[]) => {
 }
 
 /**
- * NOTE If you use this, you might need to `await pluginsEnabled`
+ * NOTE If you use this, you might want to `await pluginsEnabled()`
  * TODO avoid using platformUrls not part of spec, store plugin id in cache instead
  * e.g. filterByEnabledPlugins([{ url: 'http...' }], 'url')
  */
