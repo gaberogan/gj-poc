@@ -53,15 +53,13 @@ export const getSubVideos = subVideos
 /**
  * A promise that fulfills when subscribed videos are populated from persistent storage
  */
-// const hydratedSubVideos = fetchEndpoint('/subscriptions/SubscriptionsLoadCache').then(
-//   setSubVideos
-// )
+// const hydratedSubVideos = fetchEndpoint('/subscriptions/SubscriptionsLoadCache').then(setSubVideos)
 
 /**
  * Refresh subscribed videos starting at page 1
  */
 export const refreshSubVideos = async () => {
   // await hydratedSubVideos
-  const videos = await fetchEndpoint('/subscriptions/SubscriptionsLoad')
+  const videos = await fetchEndpoint('/subscriptions/SubscriptionsLoad?updated=true')
   setSubVideos(videos)
 }

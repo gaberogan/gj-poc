@@ -1,6 +1,6 @@
 import * as store from 'idb-keyval'
 import { fetchChannels } from './mocks'
-import { enabledPlugins, findPluginForChannelUrl, pluginsLoaded } from './plugin'
+import { findPluginForChannelUrl, pluginConfigs, pluginsLoaded } from './plugin'
 import { createGlobalSignal } from './solid'
 import _ from 'lodash'
 
@@ -108,7 +108,8 @@ const fetchVideosForChannels = async (urls: string[]) => {
  * e.g. filterByEnabledPlugins([{ url: 'http...' }], 'url')
  */
 const filterByEnabledPlugins = <T extends any[]>(videos: T, key?: string): T => {
-  const platformUrls = enabledPlugins().map((x) => x.config.platformUrl)
+  const enabledConfigs = pluginConfigs().filter((c) => c.enabled)
+  const platformUrls = enabledConfigs.map((x) => x.platformUrl)
   const accessor = _.iteratee(key as any)
   return videos.filter((vid) => platformUrls.some((pUrl) => accessor(vid).startsWith(pUrl))) as T
 }
