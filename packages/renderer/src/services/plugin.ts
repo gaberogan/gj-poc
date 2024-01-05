@@ -78,7 +78,9 @@ export const loadPlugins = async () => {
   _pluginsLoaded.resolve()
 }
 
-loadPlugins()
+loadPlugins().then(() => {
+  console.log(`Loaded plugins, timestamp ${Math.round(performance.now())}ms`)
+})
 
 // Find plugin for channel URL
 

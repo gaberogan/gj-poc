@@ -16,6 +16,7 @@ const Layout: Component = (props: any) => {
       <aside class="sidebar">
         <section class="tabs-section">
           <a href="/">Home</a>
+          <a href="/kotlin">Kotlin Home</a>
           <a href="/">Subscriptions</a>
           <a>Playlists</a>
         </section>

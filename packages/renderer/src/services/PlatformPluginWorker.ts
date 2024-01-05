@@ -19,6 +19,7 @@ class PlatformPlugin {
   id: string
   configUrl: string
   config: { [key: string]: any } | null // TODO types
+  configLoaded: EasyPromise<void>
   worker: Worker | null
   bridge: any // TODO types
   available: EasyPromise
@@ -29,6 +30,7 @@ class PlatformPlugin {
     this.id = `plugin:${++idCounter}`
     this.configUrl = configUrl
     this.config = null
+    this.configLoaded = new EasyPromise()
     this.worker = null
     this._locked = false
     this.available = new EasyPromise().resolve()
@@ -86,6 +88,7 @@ class PlatformPlugin {
 
     // Fetch plugin config
     this.config = await fetchJSONMemo(this.configUrl)
+    this.configLoaded.resolve()
 
     // Fetch plugin script
     const scriptUrl = path.join(path.dirname(this.configUrl), this.config!.scriptUrl)
@@ -188,10 +191,15 @@ self.onmessage = ev => {
     self.postMessage(JSON.parse(JSON.stringify(eval(ev.data) ?? null)))
   } catch (err) {
     if (/source.(\\w+) is not a function/.test(err.message)) {
-      self.postMessage(null)
-    } else {
-      throw err
+      return self.postMessage(null)
     }
+    
+    const captcha = /Uncaught Error: ({"plugin_type":"CaptchaRequiredException".*)/.exec(err.message)?.[1]
+    if (captcha) {
+      throw new Error('Captcha required')
+    }
+
+    throw err
   }
 }
 `

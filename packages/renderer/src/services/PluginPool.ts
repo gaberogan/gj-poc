@@ -2,7 +2,7 @@ import { EasyPromise } from './EasyPromise'
 import PlatformPlugin from './PlatformPluginWorker'
 
 const idealInstances: number = 1
-const maxInstances: number = 96
+const maxInstances: number = 50
 
 let pluginPool: PlatformPlugin[] = []
 let configUrls: string[] = []

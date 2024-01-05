@@ -1,5 +1,5 @@
 import * as store from 'idb-keyval'
-import { subscriptionUrls } from './mocks'
+import { fetchChannels } from './mocks'
 import { enabledPlugins, findPluginForChannelUrl, pluginsLoaded } from './plugin'
 import { createGlobalSignal } from './solid'
 import _ from 'lodash'
@@ -23,28 +23,31 @@ const cache = {
   clear: (): Promise<void> => store.del(CACHE_KEY),
 }
 
+// Subscription videos (not filtered by plugin)
+const [_subVideosCache, _setSubVideosCache] = createGlobalSignal<PlatformVideo[]>([])
+
 // Subscription videos global variable
-const [_subVideos, _setSubVideos] = createGlobalSignal<PlatformVideo[]>([])
+const [_subVideosFiltered, _setSubVideosFiltered] = createGlobalSignal<PlatformVideo[]>([])
 
 /**
  * Subscribed videos getter
  * Changes when cache updates or enabled plugins change
  */
-export const getSubVideos = () => {
-  const subVideos = _subVideos()
-  return filterByEnabledPlugins(subVideos, 'url')
-}
+export const getSubVideos = _subVideosFiltered
 
 // Subscribed videos setter
 const setSubVideos = async (videos: PlatformVideo[]) => {
   await cache.set(videos)
-  _setSubVideos(videos)
+  _setSubVideosCache(videos)
+  _setSubVideosFiltered(filterByEnabledPlugins(videos, 'url'))
 }
 
-/**
- * A promise that fulfills when subscribed videos are populated from persistent storage
- */
-export const hydratedSubVideos = cache.get().then(_setSubVideos)
+// A promise that fulfills when subscribed videos are populated from persistent storage
+const hydratedSubVideos = cache.get().then((videos) => {
+  _setSubVideosCache(videos)
+  _setSubVideosFiltered(filterByEnabledPlugins(videos, 'url'))
+  console.log(`Got cached subscriptions, timestamp: ${Math.round(performance.now())}ms`)
+})
 
 /**
  * Refresh subscribed videos starting at page 1
@@ -53,7 +56,7 @@ export const refreshSubVideos = async () => {
   await hydratedSubVideos
   await pluginsLoaded()
   const channelUrls = await getPrioritizedChannels()
-  const cachedVideos = _subVideos()
+  const cachedVideos = _subVideosCache()
   let videos = await fetchVideosForChannels(channelUrls)
   videos = _.uniqBy([...videos, ...cachedVideos], 'id.value')
   videos = _.orderBy(videos, 'datetime', 'desc')
@@ -63,11 +66,11 @@ export const refreshSubVideos = async () => {
 const getPrioritizedChannels = async () => {
   await hydratedSubVideos
   await pluginsLoaded()
-  const videos = getSubVideos()
+  const videos = _subVideosFiltered()
   const fetchTimestamps = Object.fromEntries(
     _.uniqBy(videos, 'author.url').map((v) => [v.author.url, v.fetchedAt])
   )
-  let channelUrls = filterByEnabledPlugins(subscriptionUrls)
+  let channelUrls = filterByEnabledPlugins(await fetchChannels())
   let channels = channelUrls.map((url) => ({ url, fetchedAt: fetchTimestamps[url] || 0 }))
   channels = _.orderBy(channels, 'fetchedAt', 'asc')
   return channels.map((c) => c.url).slice(0, RATE_LIMIT)
@@ -100,7 +103,7 @@ const fetchVideosForChannels = async (urls: string[]) => {
 }
 
 /**
- * NOTE If you use this, you might want to `await pluginsEnabled()`
+ * NOTE If you use this, you might want to `await pluginsLoaded()`
  * TODO avoid using platformUrls not part of spec, store plugin id in cache instead
  * e.g. filterByEnabledPlugins([{ url: 'http...' }], 'url')
  */
