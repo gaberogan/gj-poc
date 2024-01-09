@@ -18,7 +18,8 @@ const savedState: { [key: string]: string } = {}
  * A platform plugin such as YouTube or Patreon
  */
 class PlatformPlugin {
-  id: string
+  private id: string
+
   configUrl: string
   config: { [key: string]: any } | null // TODO types
   worker: Worker | null

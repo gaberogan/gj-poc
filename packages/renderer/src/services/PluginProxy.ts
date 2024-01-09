@@ -16,6 +16,7 @@ const createIframe = async () => {
   iframe.addEventListener('load', () => iframePromise.resolve())
   document.head.appendChild(iframe)
   await iframePromise
+  return iframe
 }
 
 const iframePromise = createIframe()
@@ -39,8 +40,6 @@ window.addEventListener('message', (ev) => {
 })
 
 const postMessagePromise = async (options: { id: string; type: string; [key: string]: any }) => {
-  await iframePromise
-
   const promise = new EasyPromise()
 
   eventTarget.addEventListener(
@@ -56,7 +55,8 @@ const postMessagePromise = async (options: { id: string; type: string; [key: str
 
   // TODO error listener
 
-  window.postMessage(options, '*')
+  const iframe = await iframePromise
+  iframe.contentWindow!.postMessage(options, '*')
 
   return await promise
 }
@@ -88,6 +88,8 @@ export const executeFunction = async (id: string, method: string, args: any[]) =
       },
     })
   }
+
+  return result
 }
 
 class PluginProxy {
