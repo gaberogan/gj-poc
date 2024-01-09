@@ -1,4 +1,6 @@
-import assert from 'assert'
+// This code runs in the iframe
+
+import assert from './assert'
 import { fetchJSONMemo, fetchText, fetchTextMemo } from './fetch'
 import path from 'path-browserify'
 import _ from 'lodash'
@@ -19,64 +21,21 @@ class PlatformPlugin {
   id: string
   configUrl: string
   config: { [key: string]: any } | null // TODO types
-  configLoaded: EasyPromise<void>
   worker: Worker | null
-  bridge: any // TODO types
-  available: EasyPromise
-
-  private _locked: boolean
+  exec: (method: string, args?: any[]) => any
 
   constructor(configUrl: string) {
     this.id = `plugin:${++idCounter}`
     this.configUrl = configUrl
     this.config = null
-    this.configLoaded = new EasyPromise()
     this.worker = null
-    this._locked = false
-    this.available = new EasyPromise().resolve()
-    this.bridge = new Proxy(
-      {},
-      {
-        // Call a function in the worker and extract the result
-        get: (__, method: string) => {
-          return async (...args: any[]) => {
-            assert(this.enabled, 'This plugin is not enabled.')
-            this.locked = true
-            console.debug(`Start: ${method} (${this.id}) (${performance.now()})`)
-            const result = await executeFunction(this.worker!, `source.${method}`, args)
-            console.debug(`Finish: ${method}  (${this.id}) (${performance.now()})`)
-            this.locked = false
-            return result
-          }
-        },
-      }
-    )
-  }
-
-  set locked(value: boolean) {
-    // Error checking
-    if (this._locked === value) {
-      if (this._locked) {
-        throw new Error(`Plugin is already locked (${this.id})`)
-      }
-      if (!this._locked) {
-        throw new Error(`Plugin is already unlocked (${this.id})`)
-      }
+    this.exec = async (method: string, args: any[] = []) => {
+      assert(this.enabled, 'This plugin is not enabled.')
+      console.debug(`Start: ${method} (${this.id}) (${performance.now()})`)
+      const result = await executeFunction(this.worker!, method, args)
+      console.debug(`Finish: ${method}  (${this.id}) (${performance.now()})`)
+      return result
     }
-
-    // Set locked
-    this._locked = value
-
-    // Update promise
-    if (this._locked) {
-      this.available = new EasyPromise()
-    } else {
-      this.available?.resolve()
-    }
-  }
-
-  get locked() {
-    return this._locked
   }
 
   get enabled(): boolean {
@@ -88,7 +47,6 @@ class PlatformPlugin {
 
     // Fetch plugin config
     this.config = await fetchJSONMemo(this.configUrl)
-    this.configLoaded.resolve()
 
     // Fetch plugin script
     const scriptUrl = path.join(path.dirname(this.configUrl), this.config!.scriptUrl)
@@ -109,11 +67,11 @@ class PlatformPlugin {
     this.worker = new Worker(URL.createObjectURL(codeBlob))
 
     // Enable
-    await this.bridge.enable(this.config, {}, savedState[this.configUrl])
+    await this.exec('source.enable', [this.config, {}, savedState[this.configUrl]])
 
     // Save state
     try {
-      savedState[this.configUrl] = await this.bridge.saveState()
+      savedState[this.configUrl] = await this.exec('source.saveState')
     } catch (e) {
       // Plugin hasn't defined saveState
     }
@@ -121,8 +79,6 @@ class PlatformPlugin {
 
   async disable() {
     assert(this.enabled, 'This plugin is already disabled.')
-
-    await this.available
 
     this.worker!.terminate()
     this.worker = null
@@ -169,18 +125,8 @@ const executeFunction = async (worker: Worker, funcName: string, args: any[]) =>
     return data
   }
 
-  // Keep a reference to the evaluated code so we can call methods like nextPage()
-  data.bridge = new Proxy(data, {
-    get: (target: any, property: string) => {
-      if (property in target) {
-        return target[property]
-      }
-
-      return async (...args: any[]) => {
-        return await executeFunction(worker, `${reference}.${property}`, args)
-      }
-    },
-  })
+  // Keep a serializable reference to send via postMessage
+  data.reference = reference
 
   return data
 }

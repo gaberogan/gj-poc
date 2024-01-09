@@ -1,6 +1,6 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, protocol } from 'electron'
 import { release } from 'os'
-import { join } from 'path'
+import { join, normalize } from 'path'
 
 // Disable annoying console warning, handle this properly later
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
@@ -26,6 +26,14 @@ async function createWindow() {
       preload: join(__dirname, '../preload/index.cjs'),
     },
   })
+
+  // TODO handle http, https, and file protocols for security and working on build
+  // protocol.handle('file', async (request: Request) => {
+  //   const filePath = request.url.replace('file://', '');
+  //   const fileUrl = normalize(`${__dirname}/${filePath}`);
+  //   callback({ path: fileUrl });
+  //   // Custom protocol handler logic
+  // });
 
   if (app.isPackaged) {
     win.loadFile(join(__dirname, '../renderer/index.html'))
