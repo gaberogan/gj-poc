@@ -99,9 +99,13 @@ function VideoList(props: {
                         ref={(el) => index === 0 && setFirstRowRef(el)}
                         class="item"
                       >
-                        <img class="imageUrl" src={vid.thumbnails.sources.slice(-1)[0].url} />
+                        <img
+                          crossorigin=""
+                          class="imageUrl"
+                          src={vid.thumbnails.sources.slice(-1)[0].url}
+                        />
                         <div class="metadata">
-                          <img class="authorImageUrl" src={vid.author.thumbnail} />
+                          <img crossorigin="" class="authorImageUrl" src={vid.author.thumbnail} />
                           <div class="metadata-right">
                             <div class="title">{vid.name}</div>
                             <div class="small-metadata">{vid.author.name}</div>

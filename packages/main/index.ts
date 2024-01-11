@@ -1,6 +1,6 @@
-import { app, BrowserWindow, shell, protocol } from 'electron'
+import { app, BrowserWindow, ipcMain, net, protocol, session, shell } from 'electron'
 import { release } from 'os'
-import { join, normalize } from 'path'
+import { join } from 'path'
 
 // Disable annoying console warning, handle this properly later
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
@@ -18,39 +18,97 @@ if (!app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 
+const PAGE_ORIGIN = `http://${process.env['VITE_DEV_SERVER_HOST']}:${process.env['VITE_DEV_SERVER_PORT']}`
+
 async function createWindow() {
   win = new BrowserWindow({
-    title: 'Main window',
+    title: 'GrayJay',
     webPreferences: {
       webSecurity: false,
+      contextIsolation: false,
+      nodeIntegration: true,
+      nodeIntegrationInSubFrames: true,
+      nodeIntegrationInWorker: false,
       preload: join(__dirname, '../preload/index.cjs'),
     },
   })
 
-  // TODO handle http, https, and file protocols for security and working on build
-  // protocol.handle('file', async (request: Request) => {
-  //   const filePath = request.url.replace('file://', '');
-  //   const fileUrl = normalize(`${__dirname}/${filePath}`);
-  //   callback({ path: fileUrl });
-  //   // Custom protocol handler logic
-  // });
+  // Whitelist protocols
+
+  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
+    const url = new URL(details.url)
+
+    // Allow websocket connection for development
+    if (details.url === PAGE_ORIGIN.replace('http:', 'ws:') + '/') {
+      return callback({})
+    }
+
+    // Whitelisted protocols
+    if (['http:', 'https:', 'devtools:'].includes(url.protocol)) {
+      return callback({})
+    }
+
+    throw new Error(`Unsupported protocol ${url.protocol} for url ${details.url}`)
+  })
+
+  // Assign each plugin to a fetch client with whitelisted URLs
+
+  let fetchClients: { [key: string]: string[] } = {}
+
+  ipcMain.handle('addFetchClient', (ev, id: string, urls: string[]) => {
+    fetchClients[id] = urls
+  })
+  ipcMain.handle('removeFetchClient', (ev, id: string) => {
+    delete fetchClients[id]
+  })
+
+  // Validate HTTP requests with Origin, localhost check, and allowUrls
+
+  const handleHttpRequest = async (req: Request) => {
+    const url = new URL(req.url)
+
+    const originHeader = req.headers.get('Origin')
+    req.headers.delete('Origin')
+
+    if (originHeader || url.origin === PAGE_ORIGIN) {
+      return await net.fetch(req, { bypassCustomProtocolHandlers: true })
+    }
+
+    const allowedUrls = fetchClients[req.headers.get('Fetch-Id') as string]
+    const urlIsAllowed = allowedUrls?.includes('everywhere') || allowedUrls?.includes(url.hostname)
+
+    if (!urlIsAllowed) {
+      throw new Error(
+        `Unable to fetch: URL must include Origin header, request to localhost, or be listed in plugin's allowUrls (${req.url})`
+      )
+    }
+
+    const res = await net.fetch(req, { bypassCustomProtocolHandlers: true })
+
+    // Strip headers from response
+    return new Response(res.body)
+  }
+  protocol.handle('http', handleHttpRequest)
+  protocol.handle('https', handleHttpRequest)
+
+  // Do not support the file protocol, instead use custom protocols
+
+  protocol.handle('file', async (req) => {
+    throw new Error(`Unsupported protocol file: for url ${req.url}`)
+  })
+
+  // Load the app into the browser window
 
   if (app.isPackaged) {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   } else {
-    // 🚧 Use ['ENV_NAME'] avoid vite:define plugin
-    const url = `http://${process.env['VITE_DEV_SERVER_HOST']}:${process.env['VITE_DEV_SERVER_PORT']}`
-
+    const url = PAGE_ORIGIN
     win.loadURL(url)
     // win.webContents.openDevTools()
   }
 
-  // Test active push message to Renderer-process
-  win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString())
-  })
-
   // Make all links open with the browser, not with the application
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }

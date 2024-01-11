@@ -1,13 +1,13 @@
 import { EasyPromise } from './EasyPromise'
-import PluginProxy from './PluginProxy'
+import PlatformPlugin from './PlatformPluginWorker'
 
 const idealInstances: number = 1
 const maxInstances: number = 20
 
-let pluginPool: PluginProxy[] = []
+let pluginPool: PlatformPlugin[] = []
 let configUrls: string[] = []
 
-export class PooledPlugin {
+export class PluginProxy {
   configUrl: string
   bridge: any
 
@@ -44,7 +44,7 @@ export class PooledPlugin {
  * Requests an unlocked instance and locks it to reserve it for you
  * Locking must be done synchronously to avoid 2 functions claiming it at once
  */
-const requestInstance = async (configUrl: string): Promise<PluginProxy> => {
+const requestInstance = async (configUrl: string): Promise<PlatformPlugin> => {
   let instance
 
   // Find available instance
@@ -82,7 +82,7 @@ const addInstance = async (configUrl: string, { locked = false }: { locked?: boo
     throw new Error('Reached maximum plugin instances, try to disable some plugins')
   }
 
-  const plugin = new PluginProxy(configUrl)
+  const plugin = new PlatformPlugin(configUrl)
   await plugin.enable()
   pluginPool.push(plugin)
 
@@ -93,7 +93,7 @@ const addInstance = async (configUrl: string, { locked = false }: { locked?: boo
   return plugin
 }
 
-const removeInstance = async (plugin: PluginProxy) => {
+const removeInstance = async (plugin: PlatformPlugin) => {
   pluginPool = pluginPool.filter((x) => x !== plugin)
   await plugin.disable()
 }
@@ -170,7 +170,7 @@ export const getPluginPool = async (configUrl: string) => {
     await addPluginToPool(configUrl)
   }
 
-  return new PooledPlugin(configUrl)
+  return new PluginProxy(configUrl)
 }
 
 // Balance pool periodically

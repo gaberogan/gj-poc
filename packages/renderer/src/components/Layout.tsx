@@ -6,7 +6,7 @@ const Layout: Component = (props: any) => {
     <div class="Layout">
       <nav>
         <a href="/" class="flex items-center gap-1">
-          <img src="/logo.svg" style="height: 40px" />
+          <img crossorigin="" src="/logo.svg" style="height: 40px" />
           <h1 class="text-xl">GrayJay</h1>
         </a>
         <a href="/settings">

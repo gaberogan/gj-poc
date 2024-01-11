@@ -1,10 +1,10 @@
-// This code runs in the iframe
-
-import assert from './assert'
+import assert from 'assert'
 import { fetchJSONMemo, fetchText, fetchTextMemo } from './fetch'
 import path from 'path-browserify'
 import _ from 'lodash'
 import { EasyPromise } from './EasyPromise'
+import uuid from './uuid'
+import { ipcRenderer } from 'electron'
 
 let idCounter = 0
 
@@ -18,25 +18,70 @@ const savedState: { [key: string]: string } = {}
  * A platform plugin such as YouTube or Patreon
  */
 class PlatformPlugin {
-  private id: string
-
+  id: string
   configUrl: string
   config: { [key: string]: any } | null // TODO types
+  configLoaded: EasyPromise<void>
   worker: Worker | null
-  exec: (method: string, args?: any[]) => any
+  bridge: any // TODO types
+  available: EasyPromise
+
+  private _locked: boolean
+
+  private fetchId: string
 
   constructor(configUrl: string) {
     this.id = `plugin:${++idCounter}`
+    this.fetchId = uuid()
     this.configUrl = configUrl
     this.config = null
+    this.configLoaded = new EasyPromise()
     this.worker = null
-    this.exec = async (method: string, args: any[] = []) => {
-      assert(this.enabled, 'This plugin is not enabled.')
-      console.debug(`Start: ${method} (${this.id}) (${performance.now()})`)
-      const result = await executeFunction(this.worker!, method, args)
-      console.debug(`Finish: ${method}  (${this.id}) (${performance.now()})`)
-      return result
+    this._locked = false
+    this.available = new EasyPromise().resolve()
+    this.bridge = new Proxy(
+      {},
+      {
+        // Call a function in the worker and extract the result
+        get: (__, method: string) => {
+          return async (...args: any[]) => {
+            assert(this.enabled, 'This plugin is not enabled.')
+            this.locked = true
+            console.debug(`Start: ${method} (${this.id}) (${performance.now()})`)
+            const result = await executeFunction(this.worker!, `source.${method}`, args)
+            console.debug(`Finish: ${method}  (${this.id}) (${performance.now()})`)
+            this.locked = false
+            return result
+          }
+        },
+      }
+    )
+  }
+
+  set locked(value: boolean) {
+    // Error checking
+    if (this._locked === value) {
+      if (this._locked) {
+        throw new Error(`Plugin is already locked (${this.id})`)
+      }
+      if (!this._locked) {
+        throw new Error(`Plugin is already unlocked (${this.id})`)
+      }
     }
+
+    // Set locked
+    this._locked = value
+
+    // Update promise
+    if (this._locked) {
+      this.available = new EasyPromise()
+    } else {
+      this.available?.resolve()
+    }
+  }
+
+  get locked() {
+    return this._locked
   }
 
   get enabled(): boolean {
@@ -48,31 +93,41 @@ class PlatformPlugin {
 
     // Fetch plugin config
     this.config = await fetchJSONMemo(this.configUrl)
+    this.configLoaded.resolve()
+
+    await ipcRenderer.invoke('addFetchClient', this.fetchId, this.config!.allowUrls)
 
     // Fetch plugin script
     const scriptUrl = path.join(path.dirname(this.configUrl), this.config!.scriptUrl)
     const pluginScript = fetchTextMemo(scriptUrl)
 
-    // Code for worker
-    const code = `
-    ${await polyfillScript}
-    ${await sourceScript}
-    ${httpPackageScript}
-    ${evalScript}
-    ${bridgePackageScript}
-    ${securityScript}
-    ${await pluginScript}`
-
     // Create worker
-    const codeBlob = new Blob([code], { type: 'application/javascript' })
-    this.worker = new Worker(URL.createObjectURL(codeBlob))
+    // Must use data URL for opaque origin / CORS safety
+    const dataUrlPromise = new EasyPromise<string>()
+    const reader = new FileReader()
+    reader.onload = (ev) => dataUrlPromise.resolve(ev.target?.result as string)
+    reader.readAsDataURL(
+      new Blob(
+        [
+          (await polyfillScript) + '\n',
+          (await sourceScript) + '\n',
+          httpPackageScript(this.fetchId) + '\n',
+          evalScript + '\n',
+          bridgePackageScript + '\n',
+          (await pluginScript) + '\n',
+        ],
+        // Mime type is important for data url
+        { type: 'text/plain' }
+      )
+    )
+    this.worker = new Worker(await dataUrlPromise)
 
     // Enable
-    await this.exec('source.enable', [this.config, {}, savedState[this.configUrl]])
+    await this.bridge.enable(this.config, {}, savedState[this.configUrl])
 
     // Save state
     try {
-      savedState[this.configUrl] = await this.exec('source.saveState')
+      savedState[this.configUrl] = await this.bridge.saveState()
     } catch (e) {
       // Plugin hasn't defined saveState
     }
@@ -80,6 +135,10 @@ class PlatformPlugin {
 
   async disable() {
     assert(this.enabled, 'This plugin is already disabled.')
+
+    await this.available
+
+    ipcRenderer.invoke('removeFetchClient', this.fetchId)
 
     this.worker!.terminate()
     this.worker = null
@@ -126,8 +185,18 @@ const executeFunction = async (worker: Worker, funcName: string, args: any[]) =>
     return data
   }
 
-  // Keep a serializable reference to send via postMessage
-  data.reference = reference
+  // Keep a reference to the evaluated code so we can call methods like nextPage()
+  data.bridge = new Proxy(data, {
+    get: (target: any, property: string) => {
+      if (property in target) {
+        return target[property]
+      }
+
+      return async (...args: any[]) => {
+        return await executeFunction(worker, `${reference}.${property}`, args)
+      }
+    },
+  })
 
   return data
 }
@@ -163,7 +232,7 @@ console = {
 `
 
 // TODO secure fetch with domain allowlist
-const httpPackageScript = `
+const httpPackageScript = (fetchId: string) => `
 const _fetch = ((XMLHttpRequest) => ({
   method = 'GET',
   url,
@@ -173,6 +242,7 @@ const _fetch = ((XMLHttpRequest) => ({
 }) => {
   const xhr = new XMLHttpRequest();
   xhr.open(method, url, false/*synchronous*/);
+  xhr.setRequestHeader('Fetch-Id', '${fetchId}');
   // xhr.setDisableHeaderCheck(true); // TODO allow setting Cookie header, may need nodeIntegrationInWorker + node-xmlhttprequest
   delete headers.Cookie
   Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
@@ -212,17 +282,4 @@ http = {
     return batcher
   },
 }
-`
-
-// TODO secure all insecure globals
-const securityScript = `
-function secure(prop) {
-  Object.defineProperty(self, prop, {
-    get: () => { throw new Error(\`GrayJay Security Exception: cannot access \${prop}\`) },
-    configurable: false
-  });
-}
-secure('fetch')
-secure('XMLHttpRequest')
-secure('importScripts')
 `

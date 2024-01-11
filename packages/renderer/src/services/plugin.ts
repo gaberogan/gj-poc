@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { PooledPlugin, addPluginToPool, getPluginPool, removePluginFromPool } from './PluginPool'
+import { PluginProxy, addPluginToPool, getPluginPool, removePluginFromPool } from './PluginPool'
 import { createGlobalSignal, createStoredGlobalSignal } from './solid'
 import { fetchJSONMemo } from './fetch'
 import { EasyPromise } from './EasyPromise'
@@ -34,7 +34,7 @@ export const disablePlugin = async (configUrl: string) => {
 
 // Load enabled plugins
 
-const [_enabledPlugins, _setEnabledPlugins] = createGlobalSignal<PooledPlugin[]>([])
+const [_enabledPlugins, _setEnabledPlugins] = createGlobalSignal<PluginProxy[]>([])
 const enabledPlugins = _enabledPlugins
 
 let _pluginsLoaded: EasyPromise<void>

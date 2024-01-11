@@ -56,7 +56,7 @@ const VideoPlayer = (props: { url: string }) => {
             <video ref={(el) => setVideoEl(el)} class="video-js"></video>
           </div>
           <div class="metadata">
-            <img class="authorImageUrl" src={vid.author.thumbnail} />
+            <img crossorigin="" class="authorImageUrl" src={vid.author.thumbnail} />
             <div class="metadata-right">
               <div class="title">{vid.name}</div>
               <div class="small-metadata">{vid.author.name}</div>
