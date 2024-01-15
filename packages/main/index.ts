@@ -70,7 +70,7 @@ async function createWindow() {
     const originHeader = req.headers.get('Origin')
     req.headers.delete('Origin')
 
-    if (originHeader || url.origin === PAGE_ORIGIN) {
+    if (originHeader || (url.origin === PAGE_ORIGIN && !url.pathname.includes('.js'))) {
       return await net.fetch(req, { bypassCustomProtocolHandlers: true })
     }
 
