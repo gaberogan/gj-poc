@@ -182,7 +182,8 @@ setTimeout(async () => {
   balancingPool = true
 
   await scaleUp()
-  await scaleDown()
+  // Do NOT scale down, if we remove instances we can't _reference things like nextPage
+  // await scaleDown()
 
   balancingPool = false
 }, 60 * 1000)

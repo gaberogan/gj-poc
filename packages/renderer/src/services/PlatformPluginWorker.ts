@@ -231,7 +231,6 @@ console = {
 }
 `
 
-// TODO secure fetch with domain allowlist
 const httpPackageScript = (fetchId: string) => `
 const _fetch = ((XMLHttpRequest) => ({
   method = 'GET',
@@ -243,7 +242,7 @@ const _fetch = ((XMLHttpRequest) => ({
   const xhr = new XMLHttpRequest();
   xhr.open(method, url, false/*synchronous*/);
   xhr.setRequestHeader('Fetch-Id', '${fetchId}');
-  // xhr.setDisableHeaderCheck(true); // TODO allow setting Cookie header, may need nodeIntegrationInWorker + node-xmlhttprequest
+  // TODO allow setting Cookie header, may need X-Cookie
   delete headers.Cookie
   Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
   xhr.send(body);

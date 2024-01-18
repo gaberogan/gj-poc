@@ -1,8 +1,6 @@
 import VideoList from '@/components/VideoList'
 import { getSubVideos, refreshSubVideos } from '@/services/kotlin'
 
-// TODO pull to refresh and indicator when refreshing on page load
-
 export default function HomeKotlin() {
   // Load subscription videos
   const start = performance.now()

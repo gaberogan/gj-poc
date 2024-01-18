@@ -4,6 +4,8 @@ import { findPluginForChannelUrl, pluginConfigs, pluginsLoaded } from './plugin'
 import { createGlobalSignal } from './solid'
 import _ from 'lodash'
 
+// TODO create helper for storage of large objects
+
 // TODO plugin.config.subscriptionRateLimit
 const RATE_LIMIT = 1
 
@@ -37,7 +39,7 @@ export const getSubVideos = _subVideosFiltered
 
 // Subscribed videos setter
 const setSubVideos = async (videos: PlatformVideo[]) => {
-  await cache.set(videos)
+  await cache.set(videos) // TODO fire and forget
   _setSubVideosCache(videos)
   _setSubVideosFiltered(filterByEnabledPlugins(videos, 'url'))
 }

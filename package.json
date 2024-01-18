@@ -19,6 +19,7 @@
     "electron-store": "^8.1.0"
   },
   "devDependencies": {
+    "@emotion/css": "^11.11.2",
     "@solidjs/router": "^0.10.5",
     "@tanstack/solid-virtual": "^3.0.1",
     "@types/assert": "^1.5.10",
