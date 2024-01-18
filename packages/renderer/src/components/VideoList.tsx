@@ -4,8 +4,6 @@ import { formatNumber } from '@/services/format'
 import { For, createEffect, createMemo, createSignal, onCleanup } from 'solid-js'
 import { css } from '@emotion/css'
 
-// TODO some titles are overflowing
-
 const GAP_SIZE = 30
 
 // Row virtualizer with dynamic item size
@@ -132,59 +130,60 @@ function VideoList(props: {
 export default VideoList
 
 const style = css`
-.videoRow {
-  display: grid;
-  grid-template-columns: repeat(var(--column-count), 1fr);
-  grid-template-rows: 1fr;
-  gap: 16px;
-}
+  .videoRow {
+    display: grid;
+    grid-template-columns: repeat(var(--column-count), 1fr);
+    grid-template-rows: 1fr;
+    gap: 16px;
+  }
 
-.item {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-  height: 100%;
-  font-size: 16px;
-}
+  .item {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    height: 100%;
+    font-size: 16px;
+  }
 
-.metadata {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
+  .metadata {
+    overflow: hidden; // TODO title cuts off, but overflows without this
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
 
-.metadata-right {
-  display: flex;
-  flex-direction: column;
-}
+  .metadata-right {
+    display: flex;
+    flex-direction: column;
+  }
 
-.title {
-  line-height: 1.3em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  max-width: 100%;
-}
+  .title {
+    line-height: 1.3em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-width: 100%;
+  }
 
-.small-metadata {
-  line-height: 1.4em;
-  font-size: 14px;
-  color: #aaa;
-}
+  .small-metadata {
+    line-height: 1.4em;
+    font-size: 14px;
+    color: #aaa;
+  }
 
-.imageUrl {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-}
+  .imageUrl {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
 
-.authorImageUrl {
-  width: 36px;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 100px;
-}
+  .authorImageUrl {
+    width: 36px;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 100px;
+  }
 `
