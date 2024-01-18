@@ -5,7 +5,9 @@ const Layout: Component = (props: any) => {
   return (
     <div class={style}>
       <nav>
-        <input type="text" placeholder="Search for videos or creators" />
+        <label>
+          <input type="text" placeholder="Search for videos or creators" />
+        </label>
         <a class="profile-card" href="/settings">
           <img class="profile-pic" crossorigin="" src="https://i.pravatar.cc/150?img=51" />
           <div>
@@ -78,8 +80,25 @@ const style = css`
       border-radius: 100px;
       border-color: #ffffff11;
       border-width: 1px;
-      padding: 8px 20px;
-      flex-basis: 300px;
+      padding: 12px;
+      padding-left: 40px;
+      width: 300px;
+    }
+
+    /* Search icon in placeholder */
+    label {
+      position: relative;
+      :before {
+        content: '';
+        position: absolute;
+        left: 16px;
+        top: 0;
+        bottom: 0;
+        width: 16px;
+        opacity: 0.8;
+        background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNNDE2IDIwOGMwIDQ1LjktMTQuOSA4OC4zLTQwIDEyMi43TDUwMi42IDQ1Ny40YzEyLjUgMTIuNSAxMi41IDMyLjggMCA0NS4zcy0zMi44IDEyLjUtNDUuMyAwTDMzMC43IDM3NmMtMzQuNCAyNS4yLTc2LjggNDAtMTIyLjcgNDBDOTMuMSA0MTYgMCAzMjIuOSAwIDIwOFM5My4xIDAgMjA4IDBTNDE2IDkzLjEgNDE2IDIwOHpNMjA4IDM1MmExNDQgMTQ0IDAgMSAwIDAtMjg4IDE0NCAxNDQgMCAxIDAgMCAyODh6Ii8+PC9zdmc+')
+          center / contain no-repeat;
+      }
     }
 
     .profile-card {
